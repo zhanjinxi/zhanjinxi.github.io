@@ -1,0 +1,4354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>铅球试投模拟器 · Shot Put Trajectory Lab</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0a0d14;
+    --line:rgba(255,255,255,.07);
+    --txt:#e6ecf7;
+    --dim:#6d7a92;
+    --accent:#ffb347;
+    --accent2:#4fd1c5;
+    --violet:#a78bfa;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 12% -10%, rgba(255,179,71,.07), transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, rgba(79,209,197,.06), transparent 60%),
+      var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .app{display:grid;grid-template-columns:340px 1fr;height:100vh;gap:16px;padding:16px;}
+
+  .auto-btn{
+    position:fixed;top:22px;right:26px;z-index:200;
+    display:flex;align-items:center;gap:9px;padding:10px 19px;border-radius:999px;
+    background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1);
+    color:var(--txt);font-size:12.5px;font-weight:600;letter-spacing:.4px;
+    cursor:pointer;font-family:inherit;
+    backdrop-filter:blur(26px) saturate(1.25);-webkit-backdrop-filter:blur(26px) saturate(1.25);
+    box-shadow:0 18px 44px -22px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.09);
+    transition:all .28s cubic-bezier(.34,1.4,.64,1);outline:none;
+    min-width:128px;justify-content:center;
+  }
+  .auto-btn:hover{border-color:rgba(255,179,71,.32);transform:translateY(-1.5px);}
+  .auto-btn:active{transform:translateY(0);}
+  .auto-btn.on{border-color:rgba(255,179,71,.48);background:linear-gradient(135deg, rgba(255,179,71,.17), rgba(255,179,71,.05));color:#ffd9a0;}
+  .auto-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);transition:all .28s;flex:none;}
+  .auto-btn.on .auto-dot{background:#ffb347;box-shadow:0 0 12px rgba(255,179,71,.95);animation:autoPulse 1.4s ease-in-out infinite;}
+  @keyframes autoPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.42;transform:scale(.78);}}
+
+  .about-btn{
+    position:fixed;left:32px;bottom:32px;z-index:200;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:8px 14px;border-radius:999px;
+    background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1);
+    color:rgba(230,236,247,.7);font-size:11.5px;font-weight:600;letter-spacing:.5px;
+    cursor:pointer;font-family:inherit;
+    backdrop-filter:blur(26px) saturate(1.25);-webkit-backdrop-filter:blur(26px) saturate(1.25);
+    box-shadow:0 14px 36px -20px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.08);
+    transition:all .28s cubic-bezier(.34,1.4,.64,1);outline:none;
+  }
+  .about-btn:hover{border-color:rgba(79,209,197,.4);color:var(--accent2);transform:translateY(-1.5px);}
+  .about-btn svg{width:12px;height:12px;flex:none;opacity:.85;}
+
+  .mode-slider{
+    display:grid;grid-template-columns:1fr 1fr;gap:4px;
+    background:rgba(0,0,0,.35);padding:4px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.06);margin-bottom:2px;
+  }
+  .mode-slider button{
+    background:transparent;border:none;color:rgba(255,255,255,.42);
+    font-size:11.5px;font-weight:600;letter-spacing:.5px;
+    padding:8px 0;border-radius:9px;cursor:pointer;font-family:inherit;
+    transition:all .25s cubic-bezier(.34,1.4,.64,1);
+  }
+  .mode-slider button:hover{color:rgba(255,255,255,.8);}
+  .mode-slider button.active{
+    background:linear-gradient(135deg, rgba(255,179,71,.22), rgba(255,179,71,.08));
+    color:#ffd9a0;box-shadow:inset 0 0 0 1px rgba(255,179,71,.32);
+  }
+  .mode-slider button[data-mode="analysis"].active{
+    background:linear-gradient(135deg, rgba(167,139,250,.24), rgba(167,139,250,.08));
+    color:#d8c9ff;box-shadow:inset 0 0 0 1px rgba(167,139,250,.4);
+  }
+
+  .panel{
+    background:linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.018) 55%, rgba(255,255,255,.008));
+    border:1px solid rgba(255,255,255,.085);border-radius:24px;
+    padding:20px 18px 16px;display:flex;flex-direction:column;gap:14px;
+    overflow-y:auto;
+    backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);
+    box-shadow:0 30px 70px -34px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .panel::-webkit-scrollbar{width:6px;}
+  .panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo{
+    width:36px;height:36px;border-radius:11px;
+    background:radial-gradient(circle at 32% 28%, #ffd79a, #ffb347 42%, #b9762a 100%);
+    box-shadow:0 0 0 1px rgba(255,179,71,.35), 0 6px 18px -4px rgba(255,179,71,.5);
+    flex:none;
+  }
+  .brand h1{font-size:14.5px;font-weight:650;letter-spacing:.3px;}
+  .brand p{font-size:10px;color:var(--dim);letter-spacing:1.3px;text-transform:uppercase;margin-top:2px;}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);}
+
+  .group{display:flex;flex-direction:column;gap:12px;}
+  .group-title{
+    font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--dim);font-weight:600;
+    display:flex;align-items:center;gap:8px;
+  }
+  .group-title::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.07);}
+
+  .ctrl{display:flex;flex-direction:column;gap:7px;}
+  .ctrl-label{font-size:11.5px;color:#b9c3d6;letter-spacing:.2px;}
+  .ctrl-row{display:flex;align-items:center;gap:9px;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    flex:1;min-width:0;height:4px;border-radius:4px;outline:none;cursor:pointer;
+    background:linear-gradient(90deg,
+      var(--accent) 0%,var(--accent) var(--p,50%),
+      rgba(255,255,255,.09) var(--p,50%),rgba(255,255,255,.09) 100%);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#0a0d14;
+    border:2.5px solid var(--accent);
+    box-shadow:0 0 0 3px rgba(255,179,71,.12), 0 2px 10px rgba(0,0,0,.8);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:#0a0d14;
+    border:2.5px solid var(--accent);cursor:pointer;
+  }
+
+  .num-wrap{
+    display:flex;align-items:center;gap:4px;
+    background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.09);
+    border-radius:9px;padding:4px 7px;width:86px;flex:none;
+    transition:border-color .18s;
+  }
+  .num-wrap:focus-within{border-color:rgba(255,179,71,.5);}
+  .num-wrap input[type=number]{
+    background:transparent;border:none;outline:none;
+    color:var(--accent);font-family:var(--mono);
+    font-size:12.5px;font-weight:600;
+    width:100%;min-width:0;text-align:right;
+    font-variant-numeric:tabular-nums;-moz-appearance:textfield;
+  }
+  .num-wrap input[type=number]::-webkit-outer-spin-button,
+  .num-wrap input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .num-wrap .unit{font-size:9.5px;color:var(--dim);flex:none;}
+
+  .wind-input-row{display:flex;align-items:center;gap:8px;margin-top:2px;}
+  .wind-input-row .lbl{font-size:10.5px;color:var(--dim);letter-spacing:.5px;flex:none;}
+  .wind-input-row .num-wrap{flex:1;width:auto;}
+
+  .toggle-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);
+    border-radius:11px;padding:9px 12px;transition:all .25s;
+  }
+  .toggle-row .t-info{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  .toggle-row .t-name{font-size:11.5px;font-weight:600;color:#b9c3d6;letter-spacing:.2px;}
+  .toggle-row .t-sub{font-size:9.5px;color:var(--dim);letter-spacing:.2px;}
+  .toggle-switch{
+    position:relative;width:40px;height:22px;flex:none;
+    border-radius:12px;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.14);
+    cursor:pointer;transition:all .28s cubic-bezier(.34,1.4,.64,1);
+    outline:none;
+  }
+  .toggle-switch::after{
+    content:"";position:absolute;left:2px;top:1px;
+    width:16px;height:16px;border-radius:50%;
+    background:rgba(255,255,255,.55);
+    transition:all .28s cubic-bezier(.34,1.4,.64,1);
+  }
+  .toggle-switch.on{
+    background:linear-gradient(135deg, rgba(79,209,197,.55), rgba(79,209,197,.28));
+    border-color:rgba(79,209,197,.7);
+  }
+  .toggle-switch.on::after{left:20px;background:#fff;box-shadow:0 0 10px rgba(79,209,197,.9);}
+  .toggle-switch.on.amber{
+    background:linear-gradient(135deg, rgba(255,179,71,.6), rgba(255,179,71,.3));
+    border-color:rgba(255,179,71,.75);
+  }
+  .toggle-switch.on.amber::after{box-shadow:0 0 10px rgba(255,179,71,.9);}
+
+  .joy-wrap{position:relative;display:flex;justify-content:center;padding:32px 18px 22px;}
+  .joy-base{
+    position:relative;width:164px;height:164px;border-radius:50%;
+    background:radial-gradient(circle at 50% 45%, rgba(79,209,197,.028), rgba(0,0,0,.52) 72%);
+    border:1px solid rgba(255,255,255,.04);
+    box-shadow:inset 0 0 80px rgba(0,0,0,.55),0 26px 54px -34px rgba(0,0,0,.95);
+    touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;
+  }
+  .joy-base::before,.joy-base::after{content:"";position:absolute;pointer-events:none;}
+  .joy-base::before{
+    left:15%;right:15%;top:50%;height:1px;transform:translateY(-50%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);
+  }
+  .joy-base::after{
+    top:15%;bottom:15%;left:50%;width:1px;transform:translateX(-50%);
+    background:linear-gradient(180deg,transparent,rgba(255,255,255,.035),transparent);
+  }
+  .joy-ring{position:absolute;inset:28px;border-radius:50%;border:1px dashed rgba(255,255,255,.024);pointer-events:none;}
+  .joy-ring.r2{inset:56px;border-style:solid;border-color:rgba(255,255,255,.014);}
+  .joy-center{position:absolute;left:50%;top:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;border-radius:50%;background:rgba(255,255,255,.085);pointer-events:none;}
+  .joy-handle{
+    position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,
+      rgba(170,248,238,.20) 0%,rgba(79,209,197,.12) 20%,
+      rgba(79,209,197,.055) 42%,rgba(79,209,197,.018) 64%,
+      rgba(79,209,197,.004) 82%,rgba(79,209,197,0) 100%);
+    filter:blur(13px);pointer-events:none;will-change:transform;
+    transition:filter .45s, background .45s;
+  }
+  .joy-handle::before{
+    content:"";position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(200,255,248,.55) 0%,rgba(79,209,197,.22) 42%,
+      rgba(79,209,197,.05) 72%,rgba(79,209,197,0) 100%);
+    filter:blur(7px);transition:background .45s;
+  }
+  .joy-handle.active{
+    background:radial-gradient(circle at 50% 50%,
+      rgba(190,252,242,.28) 0%,rgba(79,209,197,.18) 20%,
+      rgba(79,209,197,.085) 42%,rgba(79,209,197,.03) 64%,
+      rgba(79,209,197,.008) 82%,rgba(79,209,197,0) 100%);
+    filter:blur(15px);
+  }
+  .joy-handle.active::before{
+    background:radial-gradient(circle,
+      rgba(210,255,250,.78) 0%,rgba(79,209,197,.32) 42%,
+      rgba(79,209,197,.07) 72%,rgba(79,209,197,0) 100%);
+  }
+  .joy-tag{position:absolute;font-size:9px;color:rgba(255,255,255,.12);letter-spacing:.9px;font-family:var(--mono);pointer-events:none;white-space:nowrap;}
+  .tag-top{top:-16px;left:50%;transform:translateX(-50%);}
+  .tag-bottom{bottom:-16px;left:50%;transform:translateX(-50%);}
+  .tag-left{left:-32px;top:50%;transform:translateY(-50%);}
+  .tag-right{right:-32px;top:50%;transform:translateY(-50%);}
+  .joy-readout{text-align:center;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.4px;padding:5px 0 0;font-variant-numeric:tabular-nums;transition:color .25s;min-height:18px;}
+  .joy-readout.calm{color:rgba(255,255,255,.24);}
+  .joy-readout.good{color:var(--accent2);}
+  .joy-readout.bad{color:#ff8a8a;}
+  .joy-readout.mid{color:#ffcf8a;}
+  .joy-hint{text-align:center;font-size:9.5px;color:rgba(255,255,255,.13);letter-spacing:.4px;margin-top:-2px;}
+
+  .aim-box{
+    display:flex;align-items:center;justify-content:space-between;
+    background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.18);
+    border-radius:11px;padding:8px 11px;
+  }
+  .aim-box .k{font-size:10.5px;color:rgba(255,179,71,.75);letter-spacing:.6px;}
+  .aim-box .v{font-family:var(--mono);font-size:14.5px;font-weight:600;color:#ffd9a0;font-variant-numeric:tabular-nums;}
+  .aim-box .v.warn{color:#ff9b9b;}
+
+  .chart-wrap{
+    background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;padding:6px;height:170px;position:relative;
+  }
+  .chart-wrap canvas{width:100%;height:100%;display:block;}
+  .chart-info{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:8px;font-size:10.5px;color:var(--dim);gap:8px;flex-wrap:wrap;
+  }
+  .chart-info .golden{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.3px;}
+  .chart-info .golden b{color:var(--accent2);font-family:var(--mono);font-size:12px;font-weight:700;}
+  .chart-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .chart-btn{
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    padding:6px 11px;border-radius:9px;
+    font-size:10.5px;font-weight:650;letter-spacing:.3px;
+    cursor:pointer;font-family:inherit;transition:all .22s;outline:none;border:1px solid;
+  }
+  .chart-btn svg{width:11px;height:11px;flex:none;}
+  .chart-btn.cyan{
+    background:linear-gradient(135deg, rgba(79,209,197,.16), rgba(79,209,197,.05));
+    border-color:rgba(79,209,197,.4);color:#c9f5ee;
+  }
+  .chart-btn.cyan:hover{
+    background:linear-gradient(135deg, rgba(79,209,197,.28), rgba(79,209,197,.1));
+    border-color:rgba(79,209,197,.62);transform:translateY(-1px);
+  }
+  .chart-btn:disabled{opacity:.42;cursor:not-allowed;transform:none;}
+
+  .trace-btn{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    padding:11px;border-radius:11px;
+    border:1px solid rgba(255,179,71,.42);
+    background:linear-gradient(135deg, rgba(255,179,71,.16), rgba(255,179,71,.05));
+    color:#ffd9a0;font-size:12px;font-weight:650;letter-spacing:.4px;
+    cursor:pointer;font-family:inherit;transition:all .25s;outline:none;width:100%;
+  }
+  .trace-btn:hover{
+    background:linear-gradient(135deg, rgba(255,179,71,.28), rgba(255,179,71,.1));
+    border-color:rgba(255,179,71,.65);transform:translateY(-1px);
+  }
+  .trace-btn svg{width:13px;height:13px;flex:none;}
+  .trace-btn.on{
+    background:linear-gradient(135deg, rgba(255,107,107,.22), rgba(255,107,107,.08));
+    border-color:rgba(255,107,107,.6);color:#ffb9b9;
+  }
+  .trace-info{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--dim);padding:0 2px;}
+  .trace-info .count{font-family:var(--mono);color:var(--accent);font-weight:600;}
+
+  .import-btn{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    padding:14px;border-radius:13px;
+    border:1px dashed rgba(167,139,250,.5);
+    background:linear-gradient(135deg, rgba(167,139,250,.13), rgba(167,139,250,.04));
+    color:#d8c9ff;font-size:12.5px;font-weight:650;letter-spacing:.5px;
+    cursor:pointer;font-family:inherit;transition:all .25s;outline:none;
+  }
+  .import-btn:hover{
+    background:linear-gradient(135deg, rgba(167,139,250,.22), rgba(167,139,250,.08));
+    border-color:rgba(167,139,250,.75);transform:translateY(-1px);
+  }
+  .import-btn svg{width:14px;height:14px;flex:none;}
+
+  .list-btn{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-radius:12px;
+    background:linear-gradient(135deg, rgba(167,139,250,.1), rgba(167,139,250,.03));
+    border:1px solid rgba(167,139,250,.24);
+    color:#d8c9ff;font-size:12px;font-weight:650;letter-spacing:.4px;
+    cursor:pointer;font-family:inherit;transition:all .25s;outline:none;width:100%;
+  }
+  .list-btn:hover{
+    background:linear-gradient(135deg, rgba(167,139,250,.18), rgba(167,139,250,.06));
+    border-color:rgba(167,139,250,.42);
+  }
+  .list-btn .count{
+    font-family:var(--mono);font-size:10.5px;
+    background:rgba(167,139,250,.2);
+    padding:2px 7px;border-radius:6px;color:#e5d9ff;
+  }
+  .list-btn .arrow{transition:transform .3s;font-size:10px;opacity:.7;margin-left:6px;}
+  .list-btn.expanded .arrow{transform:rotate(180deg);}
+
+  .athlete-list{
+    max-height:0;overflow:hidden;
+    transition:max-height .45s cubic-bezier(.4,0,.2,1), opacity .3s;
+    opacity:0;margin-top:0;
+  }
+  .athlete-list.expanded{max-height:500px;opacity:1;margin-top:8px;overflow-y:auto;}
+  .athlete-list::-webkit-scrollbar{width:5px;}
+  .athlete-list::-webkit-scrollbar-thumb{background:rgba(167,139,250,.2);border-radius:3px;}
+
+  .athlete-item{
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;margin-bottom:8px;overflow:hidden;transition:all .25s;
+  }
+  .athlete-item:hover{background:rgba(167,139,250,.05);border-color:rgba(167,139,250,.2);}
+  .athlete-item.open{
+    background:linear-gradient(135deg, rgba(167,139,250,.1), rgba(167,139,250,.025));
+    border-color:rgba(167,139,250,.35);
+  }
+  .athlete-head{
+    display:flex;align-items:center;gap:9px;padding:11px 13px;
+    cursor:pointer;user-select:none;-webkit-user-select:none;
+  }
+  .athlete-avatar{
+    width:28px;height:28px;border-radius:9px;
+    background:radial-gradient(circle at 32% 28%, #d8c9ff, #a78bfa 45%, #6d4fd1 100%);
+    box-shadow:0 0 0 1px rgba(167,139,250,.35);
+    flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#1a1527;font-family:var(--mono);
+  }
+  .athlete-main{flex:1;min-width:0;}
+  .athlete-name{font-size:12.5px;font-weight:650;color:#e5d9ff;letter-spacing:.2px;}
+  .athlete-hash{font-family:var(--mono);font-size:9.5px;color:rgba(167,139,250,.7);letter-spacing:.5px;margin-top:1px;}
+  .athlete-speed{
+    font-family:var(--mono);font-size:11.5px;font-weight:600;color:#d8c9ff;
+    flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;
+  }
+  .athlete-speed .mean{font-size:11.5px;color:#d8c9ff;}
+  .athlete-speed .n{font-size:9px;color:rgba(167,139,250,.6);margin-top:1px;}
+  .athlete-speed .best{font-size:9.5px;color:#ffd9a0;margin-top:1px;}
+  .athlete-arrow{font-size:9px;color:rgba(167,139,250,.7);transition:transform .3s;flex:none;margin-left:4px;}
+  .athlete-item.open .athlete-arrow{transform:rotate(180deg);}
+
+  .athlete-detail{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+  .athlete-item.open .athlete-detail{max-height:400px;overflow-y:auto;}
+  .athlete-detail::-webkit-scrollbar{width:4px;}
+  .athlete-detail::-webkit-scrollbar-thumb{background:rgba(167,139,250,.2);border-radius:2px;}
+
+  .record-list{padding:0 13px 4px;}
+  .record-list-title{
+    font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;
+    color:rgba(167,139,250,.7);font-family:var(--mono);font-weight:600;
+    padding:6px 0 6px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .record-list-title .trim{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.2px;text-transform:none;}
+  .record-item{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05);
+    border-radius:9px;padding:7px 10px;margin-bottom:5px;font-size:11px;transition:all .2s;
+  }
+  .record-item:hover{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.2);}
+  .record-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+  .record-speed{font-family:var(--mono);font-size:11.5px;font-weight:600;color:#e5d9ff;}
+  .record-speed .ang{color:#ffd9a0;margin-left:6px;font-size:10px;}
+  .record-date{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.32);letter-spacing:.3px;}
+  .record-del{
+    width:20px;height:20px;border-radius:6px;
+    border:1px solid rgba(255,107,107,.2);background:rgba(255,107,107,.08);
+    color:#ff9b9b;font-size:12px;line-height:1;cursor:pointer;font-family:inherit;
+    flex:none;transition:all .2s;display:flex;align-items:center;justify-content:center;
+  }
+  .record-del:hover{background:rgba(255,107,107,.22);border-color:rgba(255,107,107,.5);}
+
+  .athlete-actions{display:flex;gap:6px;padding:4px 13px 12px;}
+  .athlete-actions button{
+    flex:1;padding:7px;border-radius:8px;
+    border:1px solid rgba(167,139,250,.3);
+    background:linear-gradient(135deg, rgba(167,139,250,.16), rgba(167,139,250,.05));
+    color:#d8c9ff;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    transition:all .2s;
+  }
+  .athlete-actions button:hover{
+    background:linear-gradient(135deg, rgba(167,139,250,.3), rgba(167,139,250,.12));
+    border-color:rgba(167,139,250,.55);
+  }
+  .athlete-actions button.danger{
+    border-color:rgba(255,107,107,.3);
+    background:linear-gradient(135deg, rgba(255,107,107,.13), rgba(255,107,107,.03));
+    color:#ff9b9b;flex:0 0 84px;
+  }
+  .athlete-actions button.danger:hover{
+    background:linear-gradient(135deg, rgba(255,107,107,.25), rgba(255,107,107,.08));
+    border-color:rgba(255,107,107,.5);
+  }
+
+  .empty-hint{
+    text-align:center;font-size:10.5px;color:rgba(255,255,255,.28);
+    padding:14px 8px;letter-spacing:.3px;
+  }
+
+  .results{margin-top:auto;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px;}
+  .hero{
+    border-radius:13px;padding:12px 14px;
+    background:linear-gradient(135deg, rgba(255,179,71,.13), rgba(255,179,71,.03));
+    border:1px solid rgba(255,179,71,.22);
+    position:relative;overflow:hidden;transition:background .3s, border-color .3s;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;
+    background:radial-gradient(circle,rgba(255,179,71,.20),transparent 70%);
+    pointer-events:none;
+  }
+  .hero.foul{
+    background:linear-gradient(135deg, rgba(255,107,107,.13), rgba(255,107,107,.03));
+    border-color:rgba(255,107,107,.28);
+  }
+  .hero.foul::after{background:radial-gradient(circle,rgba(255,107,107,.22),transparent 70%);}
+  .hero .lbl{font-size:10px;letter-spacing:1.5px;color:rgba(255,179,71,.85);text-transform:uppercase;font-weight:600;}
+  .hero.foul .lbl{color:rgba(255,107,107,.85);}
+  .hero .num{
+    font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-1px;
+    color:#ffd9a0;line-height:1.05;margin-top:3px;
+    font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,179,71,.35);
+    transition:all .3s;
+  }
+  .hero.foul .num{color:#ff9b9b;font-size:21px;letter-spacing:3px;}
+  .hero .num .unit{font-size:13px;color:rgba(255,179,71,.6);margin-left:5px;font-weight:500;letter-spacing:0;}
+  .hero.foul .num .unit{display:none;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .stat{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.055);border-radius:9px;padding:7px 9px;}
+  .stat .k{font-size:9.5px;color:var(--dim);letter-spacing:.5px;display:block;margin-bottom:2px;}
+  .stat .v{font-family:var(--mono);font-size:13.5px;font-weight:600;color:#cfd8e8;font-variant-numeric:tabular-nums;}
+  .stat .v small{font-size:9.5px;color:var(--dim);font-weight:400;margin-left:2px;}
+  .stat.foul .v{color:#ff9b9b;}
+
+  .stage{
+    display:grid;grid-template-rows: 1fr 158px;grid-template-columns: 1fr 1fr;
+    grid-template-areas:"scene scene" "side top";
+    gap:14px;min-width:0;min-height:0;
+  }
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.032), rgba(255,255,255,.008));
+    border:1px solid var(--line);border-radius:18px;
+    display:flex;flex-direction:column;overflow:hidden;min-height:0;
+    box-shadow:0 24px 60px -34px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+  .card.scene{grid-area:scene;}
+  .card.side{grid-area:side;}
+  .card.top{grid-area:top;}
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px 8px;border-bottom:1px solid rgba(255,255,255,.05);flex:none;
+  }
+  .card-head .t{font-size:11.5px;font-weight:650;letter-spacing:.6px;display:flex;align-items:center;gap:8px;}
+  .card-head .t::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  .card.scene .card-head .t::before{background:#8ab4ff;box-shadow:0 0 10px #8ab4ff;}
+  .card.side .card-head .t::before{background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
+  .card-head .hint{font-size:9.5px;color:var(--dim);letter-spacing:.8px;font-family:var(--mono);text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+  .card-head .hint b{color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums;}
+  .card.scene .card-head{padding-right:170px;}
+  canvas{display:block;width:100%;flex:1;min-height:0;touch-action:none;}
+
+  .formula-bar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05);
+    background:linear-gradient(90deg, rgba(138,180,255,.07), rgba(138,180,255,.015));
+    font-family:var(--mono);flex:none;
+  }
+  .fb-label{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(138,180,255,.8);font-weight:600;}
+  .fb-eq{font-size:13px;font-weight:600;color:#cfe0ff;letter-spacing:.2px;font-variant-numeric:tabular-nums;}
+  .fb-eq b{color:#ffd9a0;font-weight:700;}
+  .fb-note{font-size:10px;color:rgba(255,255,255,.38);letter-spacing:.2px;margin-left:auto;}
+
+  .modal-overlay{
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(4,6,10,.76);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    opacity:0;pointer-events:none;transition:opacity .38s;
+  }
+  .modal-overlay.show{opacity:1;pointer-events:auto;}
+  .modal-card{
+    position:relative;width:92%;max-width:400px;max-height:86vh;overflow-y:auto;
+    background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.022) 55%, rgba(255,255,255,.01));
+    border:1px solid rgba(255,255,255,.13);border-radius:24px;
+    padding:28px 26px 22px;
+    backdrop-filter:blur(32px) saturate(1.3);-webkit-backdrop-filter:blur(32px) saturate(1.3);
+    box-shadow:0 44px 100px -34px rgba(0,0,0,.98),inset 0 1px 0 rgba(255,255,255,.12);
+    transform:translateY(16px) scale(.94);
+    transition:transform .45s cubic-bezier(.34,1.4,.64,1);
+  }
+  .modal-card::-webkit-scrollbar{width:6px;}
+  .modal-card::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px;}
+  .modal-overlay.show .modal-card{transform:translateY(0) scale(1);}
+  .modal-glow{
+    position:absolute;left:50%;top:-80px;width:260px;height:200px;transform:translateX(-50%);
+    background:radial-gradient(circle, rgba(255,179,71,.22), transparent 70%);
+    pointer-events:none;filter:blur(20px);
+  }
+  .modal-card.violet .modal-glow{background:radial-gradient(circle, rgba(167,139,250,.28), transparent 70%);}
+  .modal-eyebrow{font-size:9.5px;letter-spacing:2.2px;color:rgba(255,179,71,.7);text-transform:uppercase;font-weight:600;font-family:var(--mono);}
+  .modal-card.violet .modal-eyebrow{color:rgba(167,139,250,.85);}
+  .modal-card h2{font-size:17px;font-weight:650;letter-spacing:.4px;margin-top:5px;color:#fff;}
+
+  .pick-list{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
+  .pick-item{
+    display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:15px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+    cursor:pointer;transition:all .25s cubic-bezier(.34,1.4,.64,1);
+    user-select:none;-webkit-user-select:none;
+  }
+  .pick-item:hover{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.13);transform:translateX(2px);}
+  .pick-item.on{
+    background:linear-gradient(135deg, rgba(79,209,197,.1), rgba(79,209,197,.025));
+    border-color:rgba(79,209,197,.32);
+  }
+  .pick-circle{
+    position:relative;width:22px;height:22px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.22);flex:none;
+    transition:all .28s cubic-bezier(.34,1.5,.64,1);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pick-item.on .pick-circle{
+    border-color:var(--accent2);
+    background:radial-gradient(circle, rgba(79,209,197,.24), rgba(79,209,197,.06));
+  }
+  .pick-circle::after{
+    content:"";width:9px;height:9px;border-radius:50%;background:var(--accent2);
+    transform:scale(0);transition:transform .3s cubic-bezier(.34,1.6,.64,1);
+  }
+  .pick-item.on .pick-circle::after{transform:scale(1);}
+  .pick-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .pick-name{font-size:13.5px;font-weight:600;color:#dde5f2;letter-spacing:.2px;}
+  .pick-item.on .pick-name{color:#c9f5ee;}
+  .pick-range{font-size:10.5px;color:var(--dim);font-family:var(--mono);letter-spacing:.2px;}
+  .pick-hint{margin-top:16px;font-size:10.5px;color:rgba(255,255,255,.3);line-height:1.6;letter-spacing:.2px;}
+
+  .modal-actions{display:flex;gap:10px;margin-top:22px;}
+  .modal-btn{
+    flex:1;padding:12px;border-radius:13px;
+    font-size:13px;font-weight:650;letter-spacing:.6px;
+    cursor:pointer;font-family:inherit;transition:all .25s;outline:none;border:1px solid;
+  }
+  .modal-btn.primary{
+    background:linear-gradient(135deg, rgba(255,179,71,.24), rgba(255,179,71,.1));
+    border-color:rgba(255,179,71,.38);color:#ffd9a0;
+  }
+  .modal-btn.primary:hover{
+    background:linear-gradient(135deg, rgba(255,179,71,.34), rgba(255,179,71,.15));
+    border-color:rgba(255,179,71,.58);transform:translateY(-1px);
+  }
+  .modal-btn.violet{
+    background:linear-gradient(135deg, rgba(167,139,250,.28), rgba(167,139,250,.1));
+    border-color:rgba(167,139,250,.45);color:#d8c9ff;
+  }
+  .modal-btn.violet:hover{
+    background:linear-gradient(135deg, rgba(167,139,250,.4), rgba(167,139,250,.18));
+    border-color:rgba(167,139,250,.68);transform:translateY(-1px);
+  }
+  .modal-btn.ghost{
+    background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1);
+    color:rgba(255,255,255,.6);flex:0 0 100px;
+  }
+  .modal-btn.ghost:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.85);}
+  .modal-btn:active{transform:translateY(0);}
+  .modal-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+  .modal-score{
+    margin-top:20px;padding:16px 18px;border-radius:16px;
+    background:linear-gradient(135deg, rgba(255,179,71,.17), rgba(255,179,71,.04));
+    border:1px solid rgba(255,179,71,.26);
+    display:flex;align-items:baseline;justify-content:space-between;position:relative;
+  }
+  .modal-score .k{font-size:10.5px;letter-spacing:1.6px;color:rgba(255,179,71,.8);text-transform:uppercase;font-weight:600;}
+  .modal-score .v{font-family:var(--mono);font-size:30px;font-weight:600;color:#ffd9a0;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+  .modal-score .v i{font-style:normal;font-size:13px;color:rgba(255,179,71,.55);margin-left:3px;letter-spacing:0;font-weight:500;}
+  .modal-params{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px;}
+  .mp{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 10px;text-align:center;}
+  .mp.frozen{opacity:.42;}
+  .mp-k{display:block;font-size:9.5px;color:var(--dim);letter-spacing:.6px;margin-bottom:5px;}
+  .mp-v{font-family:var(--mono);font-size:15px;font-weight:600;color:#e2e9f5;font-variant-numeric:tabular-nums;}
+  .mp-v i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:2px;font-weight:400;}
+  .modal-close{
+    margin-top:20px;width:100%;padding:12px;border-radius:13px;
+    border:1px solid rgba(255,179,71,.35);
+    background:linear-gradient(135deg, rgba(255,179,71,.22), rgba(255,179,71,.09));
+    color:#ffd9a0;font-size:13px;font-weight:650;letter-spacing:.6px;
+    cursor:pointer;font-family:inherit;transition:all .25s;outline:none;
+  }
+  .modal-close:hover{
+    background:linear-gradient(135deg, rgba(255,179,71,.32), rgba(255,179,71,.14));
+    border-color:rgba(255,179,71,.55);transform:translateY(-1px);
+  }
+
+  .about-card{max-width:520px;}
+  .about-section{margin-top:20px;}
+  .about-section-title{
+    font-size:11px;letter-spacing:1.6px;text-transform:uppercase;
+    color:var(--accent2);font-weight:600;font-family:var(--mono);
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .about-section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg, rgba(79,209,197,.3), transparent);}
+  .about-block{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:13px;padding:13px 15px;margin-bottom:9px;}
+  .about-block .name{font-size:12.5px;font-weight:650;color:#dde5f2;letter-spacing:.2px;margin-bottom:5px;}
+  .about-block .desc{font-size:11.5px;color:rgba(255,255,255,.58);line-height:1.65;letter-spacing:.15px;}
+  .about-block .formula{
+    font-family:var(--mono);font-size:11.5px;color:#ffd9a0;
+    background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.14);
+    border-radius:8px;padding:7px 10px;margin-top:7px;line-height:1.65;
+    overflow-x:auto;white-space:nowrap;
+  }
+  .about-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .about-tag{
+    font-size:10px;font-family:var(--mono);color:rgba(79,209,197,.85);
+    background:rgba(79,209,197,.08);border:1px solid rgba(79,209,197,.18);
+    border-radius:6px;padding:3px 8px;letter-spacing:.3px;
+  }
+  .about-footnote{
+    margin-top:18px;font-size:10.5px;color:rgba(255,255,255,.32);
+    line-height:1.7;letter-spacing:.2px;
+    border-top:1px solid rgba(255,255,255,.06);padding-top:14px;
+  }
+
+  .video-card{max-width:720px;width:94%;padding:24px 24px 20px;}
+  .va-step{margin-top:18px;padding:14px 16px;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.06);border-radius:14px;}
+  .va-step-title{
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    color:rgba(167,139,250,.85);font-weight:600;font-family:var(--mono);
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .va-step-title .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:18px;height:18px;border-radius:50%;
+    background:rgba(167,139,250,.2);color:#e5d9ff;
+    font-size:10px;font-weight:700;
+  }
+  .va-step-title .badge{
+    margin-left:auto;font-size:9.5px;padding:2px 7px;border-radius:6px;
+    background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);
+  }
+  .va-step-title .badge.done{background:rgba(79,209,197,.15);color:var(--accent2);}
+
+  .va-input-row{display:flex;align-items:center;gap:9px;margin-top:4px;}
+  .va-input-row label{font-size:11.5px;color:rgba(255,255,255,.55);flex:none;min-width:52px;}
+  .va-input-row input[type=text],
+  .va-input-row input[type=number],
+  .va-input-row select{
+    flex:1;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);
+    border-radius:9px;padding:8px 11px;color:#e6ecf7;
+    font-family:inherit;font-size:12.5px;outline:none;transition:border-color .2s;
+    -webkit-appearance:none;appearance:none;
+  }
+  .va-input-row select{
+    background-image:linear-gradient(45deg, transparent 50%, rgba(167,139,250,.8) 50%),
+                     linear-gradient(135deg, rgba(167,139,250,.8) 50%, transparent 50%);
+    background-position:calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+    background-size:5px 5px, 5px 5px;background-repeat:no-repeat;
+    padding-right:30px;cursor:pointer;color:#d8c9ff;
+  }
+  .va-input-row select option{background:#1a1527;color:#e6ecf7;padding:6px;}
+  .va-input-row input:focus,
+  .va-input-row select:focus{border-color:rgba(167,139,250,.55);box-shadow:0 0 0 3px rgba(167,139,250,.1);}
+  .va-input-row input:disabled{opacity:.65;cursor:not-allowed;background:rgba(0,0,0,.5);}
+  .va-input-row input[readonly]{opacity:.75;cursor:not-allowed;background:rgba(0,0,0,.5);color:#a78bfa;font-weight:600;}
+
+  .va-dropzone{
+    margin-top:4px;border:1.5px dashed rgba(167,139,250,.35);
+    border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;
+    background:rgba(167,139,250,.03);transition:all .25s;
+  }
+  .va-dropzone:hover,.va-dropzone.over{border-color:rgba(167,139,250,.7);background:rgba(167,139,250,.09);}
+  .va-dropzone .icon{font-size:22px;margin-bottom:6px;opacity:.7;}
+  .va-dropzone .text{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:.3px;}
+  .va-dropzone .sub{font-size:10px;color:rgba(255,255,255,.32);margin-top:3px;}
+  .va-dropzone input[type=file]{display:none;}
+
+  .va-video-wrap{
+    position:relative;margin-top:10px;border-radius:12px;
+    overflow:hidden;background:#000;display:none;
+  }
+  .va-video-wrap.show{display:block;}
+  .va-video-wrap video{display:block;width:100%;max-height:320px;background:#000;}
+  .va-video-stage{position:relative;line-height:0;}
+  .va-canvas{position:absolute;top:0;left:0;cursor:crosshair;touch-action:none;}
+
+  .va-seek{
+    position:relative;margin-top:0;padding:8px 12px 10px;
+    background:rgba(0,0,0,.55);border-top:1px solid rgba(167,139,250,.2);
+    display:flex;align-items:center;gap:10px;
+  }
+  .va-seek input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    flex:1;min-width:0;height:6px;border-radius:3px;outline:none;cursor:pointer;
+    background:linear-gradient(90deg,
+      var(--violet) 0%,var(--violet) var(--p,0%),
+      rgba(255,255,255,.12) var(--p,0%),rgba(255,255,255,.12) 100%);
+    --p:0%;
+  }
+  .va-seek input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:15px;height:15px;border-radius:50%;background:#0a0d14;
+    border:2.5px solid var(--violet);
+    box-shadow:0 0 0 3px rgba(167,139,250,.18), 0 2px 8px rgba(0,0,0,.8);
+    transition:transform .15s;
+  }
+  .va-seek input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.18);}
+  .va-seek input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:#0a0d14;
+    border:2.5px solid var(--violet);cursor:pointer;
+  }
+  .va-seek input[type=range]:disabled{
+    opacity:.35;cursor:not-allowed;pointer-events:none;filter:saturate(0.3);
+  }
+  .va-seek .time-txt{
+    font-family:var(--mono);font-size:10.5px;font-weight:600;
+    color:#d8c9ff;letter-spacing:.3px;flex:none;
+    font-variant-numeric:tabular-nums;min-width:92px;text-align:center;
+  }
+
+  .va-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .va-toolbar button{
+    flex:1;min-width:60px;padding:7px 8px;border-radius:9px;
+    border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.04);
+    color:rgba(255,255,255,.7);
+    font-size:10.5px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.2px;
+  }
+  .va-toolbar button:hover{
+    background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.4);color:#d8c9ff;
+  }
+  .va-toolbar button.active{
+    background:linear-gradient(135deg, rgba(167,139,250,.28), rgba(167,139,250,.1));
+    border-color:rgba(167,139,250,.6);color:#e5d9ff;
+  }
+  .va-toolbar button:disabled{
+    opacity:.35;cursor:not-allowed;pointer-events:none;filter:saturate(0.3);
+  }
+
+  .va-hint{font-size:10.5px;color:rgba(255,255,255,.4);line-height:1.6;margin-top:8px;letter-spacing:.2px;}
+  .va-hint b{color:rgba(167,139,250,.9);font-weight:600;font-family:var(--mono);}
+  .va-hint .step{display:block;margin-left:12px;color:rgba(255,255,255,.55);}
+  .va-hint .step b{color:rgba(167,139,250,.95);}
+
+  .va-scale-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .va-scale-info .cell{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:8px 10px;}
+  .va-scale-info .k{font-size:9.5px;color:var(--dim);letter-spacing:.5px;display:block;margin-bottom:2px;}
+  .va-scale-info .v{font-family:var(--mono);font-size:12.5px;font-weight:600;color:#d8c9ff;}
+
+  .va-result{
+    margin-top:12px;padding:14px 16px;border-radius:14px;
+    background:linear-gradient(135deg, rgba(79,209,197,.13), rgba(79,209,197,.03));
+    border:1px solid rgba(79,209,197,.28);display:none;
+  }
+  .va-result.show{display:block;}
+  .va-result .title{
+    font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--accent2);font-weight:600;font-family:var(--mono);margin-bottom:10px;
+  }
+  .va-result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .va-result-grid .cell{background:rgba(0,0,0,.28);border:1px solid rgba(79,209,197,.2);border-radius:10px;padding:9px 10px;text-align:center;}
+  .va-result-grid .k{font-size:9.5px;color:rgba(79,209,197,.7);letter-spacing:.5px;display:block;margin-bottom:3px;}
+  .va-result-grid .v{font-family:var(--mono);font-size:15px;font-weight:600;color:#c9f5ee;}
+  .va-result-grid .v small{font-size:9.5px;color:rgba(79,209,197,.6);margin-left:2px;font-weight:400;}
+
+  @media (max-width:980px){
+    .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto;min-height:100vh;overflow:auto;}
+    body{overflow:auto;}
+    .panel{max-height:none;}
+    .stage{grid-template-rows: 420px 160px;grid-template-columns: 1fr 1fr;}
+    .card.scene .card-head{padding-right:16px;}
+    .auto-btn{top:12px;right:12px;padding:8px 14px;font-size:11.5px;min-width:114px;}
+    .about-btn{left:16px;bottom:16px;}
+    .video-card{width:96%;padding:18px 16px 16px;}
+  }
+  @media (max-width:640px){
+    .stage{grid-template-rows: 340px 150px 150px;grid-template-columns: 1fr;grid-template-areas:"scene" "side" "top";}
+  }
+</style>
+</head>
+<body>
+
+<button class="auto-btn" id="autoBtn">
+  <span class="auto-dot"></span>
+  <span class="auto-label">自动演示</span>
+</button>
+
+<button class="about-btn" id="aboutBtn">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+  关于
+</button>
+
+<div class="app">
+
+  <aside class="panel">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>铅球试投模拟器</h1>
+        <p>Shot Put Trajectory Lab</p>
+      </div>
+    </div>
+
+    <div class="mode-slider" id="modeSlider">
+      <button data-mode="demo" class="active">演示模式</button>
+      <button data-mode="analysis">分析模式</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">出手参数</div>
+
+      <div class="ctrl" id="v0Ctrl">
+        <span class="ctrl-label">出手速度</span>
+        <div class="ctrl-row">
+          <input type="range" id="v0" min="0" max="20" step="0.1" value="8">
+          <div class="num-wrap">
+            <input type="number" id="v0n" min="0" max="20" step="0.1" value="8.0">
+            <span class="unit">m/s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <span class="ctrl-label">出手角度</span>
+        <div class="ctrl-row">
+          <input type="range" id="ag" min="0" max="90" step="1" value="42">
+          <div class="num-wrap">
+            <input type="number" id="agn" min="0" max="90" step="1" value="42">
+            <span class="unit">°</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <span class="ctrl-label">出手高度</span>
+        <div class="ctrl-row">
+          <input type="range" id="h0" min="1.2" max="2.2" step="0.05" value="1.8">
+          <div class="num-wrap">
+            <input type="number" id="h0n" min="1.2" max="2.2" step="0.05" value="1.80">
+            <span class="unit">m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <span class="ctrl-label">铅球质量</span>
+        <div class="ctrl-row">
+          <input type="range" id="mass" min="3" max="8" step="0.1" value="3">
+          <div class="num-wrap">
+            <input type="number" id="massn" min="3" max="8" step="0.1" value="3.0">
+            <span class="unit">kg</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">物理模型</div>
+      <div class="toggle-row">
+        <div class="t-info">
+          <span class="t-name">空气阻力</span>
+          <span class="t-sub">关闭后为真空抛物线，最佳角=45°</span>
+        </div>
+        <button class="toggle-switch on amber" id="airToggle" aria-label="空气阻力开关"></button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">轨迹留痕</div>
+      <button class="trace-btn" id="traceBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+        <span id="traceBtnLabel">留下当前曲线</span>
+      </button>
+      <div class="trace-info">
+        <span>已留痕</span>
+        <span class="count" id="traceCount">0</span>
+        <span>条</span>
+      </div>
+      <button class="chart-btn cyan" id="clearTraceBtn" style="width:100%;padding:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+        </svg>
+        清空全部留痕
+      </button>
+    </div>
+
+    <div class="group" id="analysisGroup" style="display:none;">
+      <div class="group-title">视频分析</div>
+      <button class="import-btn" id="importVideoBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        导入视频进行分析
+      </button>
+      <button class="list-btn" id="listBtn">
+        <span>运动员列表</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="count" id="athleteCount">0</span>
+          <span class="arrow">▼</span>
+        </span>
+      </button>
+      <div class="athlete-list" id="athleteList">
+        <div class="empty-hint">暂无运动员数据<br>点击上方按钮导入视频开始分析</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">投掷方向</div>
+      <div class="aim-box">
+        <span class="k">水平偏角</span>
+        <span class="v" id="aimVal">0.0°</span>
+      </div>
+      <div style="font-size:10px;color:var(--dim);line-height:1.5;">
+        在俯视图中按住拖动即可改变投掷方向；超过 ±17.46° 判为出界。
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">风环境 · 360° 光晕摇杆</div>
+
+      <div class="joy-wrap">
+        <div class="joy-base" id="joyBase">
+          <div class="joy-ring"></div>
+          <div class="joy-ring r2"></div>
+          <div class="joy-center"></div>
+          <div class="joy-handle" id="joy-handle"></div>
+          <span class="joy-tag tag-top">左风</span>
+          <span class="joy-tag tag-bottom">右风</span>
+          <span class="joy-tag tag-left">逆风</span>
+          <span class="joy-tag tag-right">顺风</span>
+        </div>
+      </div>
+
+      <div class="joy-readout calm" id="joyReadout">无风</div>
+      <div class="joy-hint">拖动摇杆调方向与风速 · 双击回中</div>
+
+      <div class="wind-input-row">
+        <span class="lbl">风速输入</span>
+        <div class="num-wrap">
+          <input type="number" id="wdInput" min="0" max="10" step="0.5" value="0.0">
+          <span class="unit">m/s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group">
+      <div class="group-title">角度-距离曲线</div>
+      <div class="chart-wrap">
+        <canvas id="curveCanvas"></canvas>
+      </div>
+      <div class="chart-info">
+        <span class="golden">黄金角 <b id="goldenAngle">—</b></span>
+        <div class="chart-actions">
+          <button class="chart-btn cyan" id="exportCsvBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            导出CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="hero" id="heroBox">
+        <div class="lbl" id="heroLbl">有效成绩</div>
+        <div class="num"><span id="rScore">0.00</span><span class="unit">m</span></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span class="k">飞行距离</span><span class="v" id="rRange">—</span></div>
+        <div class="stat"><span class="k">飞行时间</span><span class="v" id="rTime">—</span></div>
+        <div class="stat"><span class="k">最高点</span><span class="v" id="rMaxH">—</span></div>
+        <div class="stat" id="latStat"><span class="k">横向偏移</span><span class="v" id="rLat">—</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <section class="card scene">
+      <div class="card-head">
+        <span class="t">三维视图</span>
+        <span class="hint" id="sceneHint">右侧 30° 俯视 · 拖拽旋转 · 滚轮缩放</span>
+      </div>
+      <div class="formula-bar" id="formulaBar">
+        <span class="fb-label">轨迹解析式</span>
+        <span class="fb-eq" id="fbEq">—</span>
+        <span class="fb-note" id="fbNote"></span>
+      </div>
+      <canvas id="sceneCanvas"></canvas>
+    </section>
+
+    <section class="card side">
+      <div class="card-head">
+        <span class="t">侧视图</span>
+        <span class="hint">拖动手柄调参数</span>
+      </div>
+      <canvas id="sideCanvas"></canvas>
+    </section>
+
+    <section class="card top">
+      <div class="card-head">
+        <span class="t">俯视图</span>
+        <span class="hint">拖拽调方向 · <b id="aimReadout">0°</b></span>
+      </div>
+      <canvas id="topCanvas"></canvas>
+    </section>
+  </main>
+
+</div>
+
+<div class="modal-overlay" id="pickModal">
+  <div class="modal-card">
+    <div class="modal-glow"></div>
+    <span class="modal-eyebrow">DEMO SETUP</span>
+    <h2>选择演示项目</h2>
+
+    <div class="pick-list" id="pickList">
+      <div class="pick-item" data-key="v0">
+        <div class="pick-circle"></div>
+        <div class="pick-text">
+          <span class="pick-name">出手速度</span>
+          <span class="pick-range">0 – 20 m/s</span>
+        </div>
+      </div>
+
+      <div class="pick-item on" data-key="angle">
+        <div class="pick-circle"></div>
+        <div class="pick-text">
+          <span class="pick-name">出手角度</span>
+          <span class="pick-range">0° – 90°（步长 1°）</span>
+        </div>
+      </div>
+
+      <div class="pick-item" data-key="h0">
+        <div class="pick-circle"></div>
+        <div class="pick-text">
+          <span class="pick-name">出手高度</span>
+          <span class="pick-range">1.20 – 2.20 m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pick-hint">
+      未勾选的参数在演示中保持不变。<br>
+      系统会根据组合数量自动调整演示速度。
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="pickCancel">取消</button>
+      <button class="modal-btn primary" id="pickStart">开始演示</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resultModal">
+  <div class="modal-card">
+    <div class="modal-glow"></div>
+    <span class="modal-eyebrow">OPTIMAL SOLUTION</span>
+    <h2>得分率最高的方案</h2>
+
+    <div class="modal-score">
+      <span class="k">有效成绩</span>
+      <span class="v"><b id="mScore">0.00</b><i>m</i></span>
+    </div>
+
+    <div class="modal-params">
+      <div class="mp" id="mpV0">
+        <span class="mp-k">出手速度</span>
+        <span class="mp-v" id="mV0">0.0<i>m/s</i></span>
+      </div>
+      <div class="mp" id="mpAngle">
+        <span class="mp-k">出手角度</span>
+        <span class="mp-v" id="mAngle">0<i>°</i></span>
+      </div>
+      <div class="mp" id="mpH0">
+        <span class="mp-k">出手高度</span>
+        <span class="mp-v" id="mH0">0.00<i>m</i></span>
+      </div>
+    </div>
+
+    <button class="modal-close" id="modalClose">知道了</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal-card about-card">
+    <div class="modal-glow"></div>
+    <span class="modal-eyebrow">ABOUT · 算法与原理</span>
+    <h2>铅球模拟器背后的数学</h2>
+
+    <div class="about-section">
+      <div class="about-section-title">34.92° 的真相</div>
+      <div class="about-block">
+        <div class="name">为什么不是 30° 或 45°？</div>
+        <div class="desc">
+          把 34.92° 对半分得 17.46°，它的正弦值恰好约等于 0.3：
+        </div>
+        <div class="formula">sin(17.46°) ≈ 0.3000</div>
+        <div class="desc" style="margin-top:8px;">
+          也就是说：<b>每远离圆心 1 米，两条边线一共张开约 0.6 米</b>（每边 0.3 米）。
+          这样画线的人每 1 米张 0.6 米、每 5 米张 3 米，都是很整的数——这才是选 34.92° 的真正原因。
+        </div>
+        <div class="about-tags">
+          <span class="about-tag">正弦</span>
+          <span class="about-tag">扇形张角</span>
+          <span class="about-tag">工程取整</span>
+        </div>
+      </div>
+      <div class="about-block">
+        <div class="name">压线为什么算犯规？</div>
+        <div class="desc">
+          落点必须完全落在扇形两条边线的<b>内沿之内</b>。用数学说：球碰到边线，就是点落在了扇形的边界上；
+          边界不属于扇形内部，所以判犯规。
+        </div>
+        <div class="formula">有效 ⇔ |θ| &lt; 17.46°（严格小于）</div>
+        <div class="about-tags">
+          <span class="about-tag">开集/闭集</span>
+          <span class="about-tag">边界归属</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">空气阻力开关</div>
+      <div class="about-block">
+        <div class="name">为什么最佳角不是 45°？</div>
+        <div class="desc">
+          真空中的理想抛体，最佳出手角恰好是 45°。但真实铅球受空气阻力，水平分量衰减更快，
+          最佳角会向"低角度"偏移到 42° 左右。
+        </div>
+        <div class="desc" style="margin-top:6px;">
+          <b>关掉空气阻力</b>，角度-距离曲线的峰值会回到 45°——这就是"物理对数学模型的修正"。
+        </div>
+        <div class="formula">真空: θ* = 45°　有阻力: θ* ≈ 42°</div>
+        <div class="about-tags">
+          <span class="about-tag">理想 vs 现实</span>
+          <span class="about-tag">建模修正</span>
+        </div>
+      </div>
+      <div class="about-block">
+        <div class="name">铅球质量与阻力</div>
+        <div class="desc">
+          阻力加速度 k = ½ρC_dA/m。质量越大，阻力对运动的影响越小，轨迹越接近理想抛物线。
+        </div>
+        <div class="formula">a_drag = ½ρC_dA/m · v²</div>
+        <div class="about-tags">
+          <span class="about-tag">质量影响</span>
+          <span class="about-tag">阻力加速度</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">轨迹留痕</div>
+      <div class="about-block">
+        <div class="name">对比实验</div>
+        <div class="desc">
+          点击"留下当前曲线"，把当前参数的轨迹以细线保留在三个视图上，便于对比不同速度、角度、高度
+          的三要素各自影响。
+        </div>
+        <div class="formula">每条留痕自动配一个编号和颜色</div>
+        <div class="about-tags">
+          <span class="about-tag">对比实验</span>
+          <span class="about-tag">控制变量</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">轨迹算法</div>
+      <div class="about-block">
+        <div class="name">运动方程 · 牛顿第二定律</div>
+        <div class="desc">铅球受重力与空气阻力共同作用。阻力方向与相对气流相反，大小与速度平方成正比。</div>
+        <div class="formula">m·dv/dt = G + F_d ， F_d = -½ρC_dA·v_rel·v_rel</div>
+        <div class="about-tags">
+          <span class="about-tag">牛顿第二定律</span>
+          <span class="about-tag">二次阻力</span>
+        </div>
+      </div>
+      <div class="about-block">
+        <div class="name">数值积分 · RK4</div>
+        <div class="desc">方程无初等解析解，用四阶龙格–库塔法逐步推进。每步 0.5 毫秒。</div>
+        <div class="formula">y_{n+1} = y_n + (k₁ + 2k₂ + 2k₃ + k₄)/6</div>
+        <div class="about-tags">
+          <span class="about-tag">常微分方程</span>
+          <span class="about-tag">RK4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">优化算法</div>
+      <div class="about-block">
+        <div class="name">网格扫描 · 参数空间</div>
+        <div class="desc">在三维参数空间中按固定步长逐点评估，记录有效射程最大的组合。</div>
+        <div class="formula">速度步长 0.5 m/s · 角度步长 1° · 高度 5 档</div>
+        <div class="about-tags">
+          <span class="about-tag">穷举搜索</span>
+          <span class="about-tag">全局最优</span>
+        </div>
+      </div>
+      <div class="about-block">
+        <div class="name">去极值平均</div>
+        <div class="desc">多次测量的数据，去掉最大值与最小值后取平均，抑制异常测量带来的偏差。</div>
+        <div class="formula">x̄ = (Σxᵢ - max - min) / (n - 2) ， n ≥ 3</div>
+        <div class="about-tags">
+          <span class="about-tag">稳健统计</span>
+          <span class="about-tag">异常值抑制</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">数据导出</div>
+      <div class="about-block">
+        <div class="name">角度-距离扫描 + 轨迹点</div>
+        <div class="desc">导出的 CSV 包含角度扫描表、当前轨迹点和留痕数据。可直接导入 Excel/WPS 描点、拟合抛物线。</div>
+        <div class="formula">文件编码 UTF-8 with BOM（Excel 中文兼容）</div>
+        <div class="about-tags">
+          <span class="about-tag">CSV</span>
+          <span class="about-tag">数据采集</span>
+          <span class="about-tag">描点拟合</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">视频分析 · 三点标记</div>
+      <div class="about-block">
+        <div class="name">比例尺 · 任意已知长度</div>
+        <div class="desc">在视频中量取任意一段已知实际长度的物体两端（铅球直径、栏架高、A4纸长边、地面标尺等），换算比例尺。</div>
+        <div class="formula">scale = 像素长度 / 实际长度</div>
+        <div class="about-tags">
+          <span class="about-tag">比例换算</span>
+          <span class="about-tag">任意参照物</span>
+        </div>
+      </div>
+      <div class="about-block">
+        <div class="name">三点标记 · 出手三要素</div>
+        <div class="desc">
+          点击"标记"按钮锁定视频当前帧，然后依次标记：
+          <br>① 出手时铅球于地面的垂直投影
+          <br>② 出手时的铅球位置
+          <br>（系统自动跳到 0.05 秒后）
+          <br>③ 0.05 秒后铅球的位置
+        </div>
+        <div class="formula">
+          h₀ = |A₂.y - A₁.y| / scale
+          <br>v₀ = |A₂A₃| / scale / 0.05
+          <br>θ = atan2(A₂.y - A₃.y, |A₃.x - A₂.x|)
+        </div>
+        <div class="about-tags">
+          <span class="about-tag">三点定位</span>
+          <span class="about-tag">自动判方向</span>
+          <span class="about-tag">间隔锁死</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-footnote">
+      物理参数：铅球默认 3 kg（可调 3–8 kg）· 半径 5 cm · 空气密度 1.225 kg/m³ · 阻力系数 0.47 · 重力 9.8 m/s²。
+    </div>
+
+    <button class="modal-close" id="aboutClose">知道了</button>
+  </div>
+</div>
+
+<!-- 视频分析弹窗 -->
+<div class="modal-overlay" id="videoModal">
+  <div class="modal-card violet video-card">
+    <div class="modal-glow"></div>
+    <span class="modal-eyebrow">VIDEO ANALYSIS</span>
+    <h2>导入视频进行分析</h2>
+
+    <div class="va-step">
+      <div class="va-step-title">
+        <span class="num">I</span>
+        运动员
+        <span class="badge" id="nameBadge">必填</span>
+      </div>
+
+      <div class="va-input-row">
+        <label>选择</label>
+        <select id="athleteSelect">
+          <option value="__new__">新运动员</option>
+        </select>
+      </div>
+
+      <div class="va-input-row" style="margin-top:8px;">
+        <label>姓名</label>
+        <input type="text" id="athleteNameInput" placeholder="输入运动员姓名" maxlength="20">
+      </div>
+
+      <div class="va-hint">
+        选择已有运动员则追加历史记录；否则创建新运动员并分配唯一哈希编号。
+      </div>
+    </div>
+
+    <div class="va-step">
+      <div class="va-step-title">
+        <span class="num">II</span>
+        视频文件
+        <span class="badge" id="videoBadge">未选择</span>
+      </div>
+      <div class="va-dropzone" id="dropzone">
+        <div class="icon">🎬</div>
+        <div class="text">拖动视频到此处，或点击选择文件</div>
+        <div class="sub">支持 MP4 / WebM / MOV 等浏览器可播放格式</div>
+        <input type="file" id="videoFileInput" accept="video/*">
+      </div>
+
+      <div class="va-video-wrap" id="videoWrap">
+        <div class="va-video-stage" id="videoStage">
+          <video id="analysisVideo" muted playsinline></video>
+          <canvas class="va-canvas" id="analysisCanvas"></canvas>
+        </div>
+        <div class="va-seek" id="vaSeek">
+          <input type="range" id="seekBar" min="0" max="1000" step="1" value="0">
+          <span class="time-txt" id="timeTxt">0.00 / 0.00 s</span>
+        </div>
+      </div>
+
+      <div class="va-toolbar" id="videoToolbar" style="display:none;">
+        <button id="btnPrevFrame">上一帧</button>
+        <button id="btnPlayPause">播放</button>
+        <button id="btnNextFrame">下一帧</button>
+        <button id="btnToolRuler" class="tool-btn">量长度</button>
+        <button id="btnToolMark" class="tool-btn">标记</button>
+      </div>
+    </div>
+
+    <div class="va-step">
+      <div class="va-step-title">
+        <span class="num">1</span>
+        量已知长度 · 建立比例尺
+        <span class="badge" id="scaleBadge">未设置</span>
+      </div>
+      <div class="va-hint">
+        点击 <b>量长度</b> 工具，依次点击视频中一段<b>已知实际长度</b>的物体两端
+        （如铅球直径、栏架高、地面标尺、A4 纸长边等），
+        再在下方输入它的真实长度，系统自动换算比例尺。
+      </div>
+      <div class="va-input-row" style="margin-top:8px;">
+        <label>实际长度</label>
+        <input type="number" id="refLenInput" min="0.01" max="20" step="0.01" value="1.00">
+        <span style="font-size:11px;color:var(--dim);">米</span>
+      </div>
+      <div class="va-input-row" style="margin-top:6px;">
+        <label>参照物</label>
+        <select id="refNameSelect">
+          <option value="地面标尺 1.00" selected>地面标尺 1.00 m</option>
+          <option value="铅球直径 0.10">铅球直径 0.10 m</option>
+          <option value="栏架高 0.84">栏架高 0.84 m</option>
+          <option value="A4 纸长边 0.297">A4 纸长边 0.297 m</option>
+          <option value="__custom__">自定义…</option>
+        </select>
+      </div>
+      <div class="va-scale-info">
+        <div class="cell"><span class="k">参照像素长度</span><span class="v" id="pixelLenVal">—</span></div>
+        <div class="cell"><span class="k">比例尺</span><span class="v" id="scaleVal">—</span></div>
+      </div>
+    </div>
+
+    <div class="va-step">
+      <div class="va-step-title">
+        <span class="num">2</span>
+        三点标记 · 确定出手三要素
+        <span class="badge" id="markBadge">0 / 3</span>
+      </div>
+      <div class="va-hint">
+        点击 <b>标记</b> 按钮锁定当前帧，然后依次点击：
+        <span class="step">① 出手时铅球<b>于地面的垂直投影</b>（脚底位置）</span>
+        <span class="step">② 出手时的<b>铅球位置</b></span>
+        <span class="step">（系统自动跳转 0.05 秒后）</span>
+        <span class="step">③ 0.05 秒后<b>铅球的位置</b></span>
+        <span style="display:block;margin-top:6px;color:rgba(255,107,107,.7);">
+          ⚠ 标记期间视频进度被锁定；再次点击"标记"按钮可退出标记模式。
+        </span>
+      </div>
+      <div class="va-input-row" style="margin-top:8px;">
+        <label>时间间隔</label>
+        <input type="number" id="timeGapInput" value="0.05" readonly>
+        <span style="font-size:11px;color:var(--dim);">秒（锁定）</span>
+      </div>
+      <div class="va-scale-info">
+        <div class="cell"><span class="k">出手高度</span><span class="v" id="heightVal">—</span></div>
+        <div class="cell"><span class="k">A₂A₃像素距离</span><span class="v" id="markDistVal">—</span></div>
+        <div class="cell"><span class="k">A₂A₃实际距离</span><span class="v" id="markRealVal">—</span></div>
+        <div class="cell"><span class="k">出手角度</span><span class="v" id="angleVal">—</span></div>
+      </div>
+      <button class="modal-btn violet" id="calcSpeedBtn" style="margin-top:10px;" disabled>重新计算并同步主面板</button>
+    </div>
+
+    <div class="va-result" id="vaResult">
+      <div class="title">分析结果</div>
+      <div class="va-result-grid">
+        <div class="cell"><span class="k">出手速度</span><span class="v" id="resSpeed">—<small>m/s</small></span></div>
+        <div class="cell"><span class="k">出手高度</span><span class="v" id="resH0">—<small>m</small></span></div>
+        <div class="cell"><span class="k">出手角度</span><span class="v" id="resAngle">—<small>°</small></span></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="videoCancel">取消</button>
+      <button class="modal-btn violet" id="saveAthleteBtn" disabled>保存到历史</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const state = {
+    v0: 8, angle: 42, h0: 1.8, aimAngle: 0,
+    windSpeed: 0, windAngle: 0,
+    mass: 3.0, g: 9.8,
+    radius: 1.0675,
+    halfAngle: 17.46 * Math.PI / 180,
+    airOn: true
+  };
+
+  const RHO = 1.225, CD = 0.47, BALL_R = 0.05;
+  const WIND_GAIN = 12;
+  const AIM_LIMIT = 60;
+  const OUT_ANGLE = 17.46;
+  const JOY_R_INSET = 30;
+  const MARK_DT = 0.05;
+
+  const cam = {
+    azim: Math.PI * 0.16, elev: Math.PI * 0.16, dist: 1,
+    dragging: false, lastX: 0, lastY: 0
+  };
+
+  let mode = 'demo';
+  let animProgress = 1;
+  let animating = false;
+  let animStartTime = 0;
+  let activeAthleteIndex = -1;
+
+  const athletes = [];
+
+  const traces = [];
+  let traceCounter = 0;
+  const TRACE_COLORS = [
+    '#4fd1c5', '#a78bfa', '#ff8a8a', '#8ab4ff', '#ffcf8a',
+    '#c9f5ee', '#d8c9ff', '#ff9b9b', '#b8cffc', '#ffe0a3'
+  ];
+
+  const WIND_NAMES = ['顺风','顺风偏左','左风','逆风偏左','逆风','逆风偏右','右风','顺风偏右'];
+  function getWindName(angle){
+    const a = ((angle % 360) + 360) % 360;
+    return WIND_NAMES[Math.round(a / 45) % 8];
+  }
+
+  let sim = {
+    pts:[{x:0,y:2,z:0,r:0}], x:0, z:0, range:0, maxH:2, time:0,
+    vLand:0, angleFromCenter:0, valid:true
+  };
+  let pending = false;
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+  const sceneCanvas = document.getElementById('sceneCanvas');
+  const topCanvas   = document.getElementById('topCanvas');
+  const sideCanvas  = document.getElementById('sideCanvas');
+  const curveCanvas = document.getElementById('curveCanvas');
+  const joyBase     = document.getElementById('joyBase');
+  const joyHandle   = document.getElementById('joy-handle');
+  const joyReadout  = document.getElementById('joyReadout');
+  const autoBtn     = document.getElementById('autoBtn');
+  const autoLabel   = autoBtn.querySelector('.auto-label');
+  const resultModal = document.getElementById('resultModal');
+  const pickModal   = document.getElementById('pickModal');
+  const pickList    = document.getElementById('pickList');
+  const aboutBtn    = document.getElementById('aboutBtn');
+  const aboutModal  = document.getElementById('aboutModal');
+  const modeSlider  = document.getElementById('modeSlider');
+  const v0Ctrl      = document.getElementById('v0Ctrl');
+  const analysisGroup = document.getElementById('analysisGroup');
+  const importVideoBtn = document.getElementById('importVideoBtn');
+  const listBtn     = document.getElementById('listBtn');
+  const athleteList = document.getElementById('athleteList');
+  const athleteCount = document.getElementById('athleteCount');
+  const wdInput     = document.getElementById('wdInput');
+  const videoModal  = document.getElementById('videoModal');
+  const airToggle   = document.getElementById('airToggle');
+  const traceBtn    = document.getElementById('traceBtn');
+  const traceBtnLabel = document.getElementById('traceBtnLabel');
+  const traceCount  = document.getElementById('traceCount');
+  const clearTraceBtn = document.getElementById('clearTraceBtn');
+
+  /* ================= 物理仿真 ================= */
+  function simulateCore(v0, angle, h0, aimAngle, windSpeed, windAngle, recordPts){
+    const g = state.g;
+    const elev = angle * Math.PI / 180;
+    const aim  = aimAngle * Math.PI / 180;
+    const A = Math.PI * BALL_R * BALL_R;
+    const kAir = 0.5 * RHO * CD * A / state.mass * WIND_GAIN;
+    const k = state.airOn ? kAir : 0;
+
+    let wx = 0, wz = 0;
+    if (state.airOn && windSpeed > 0.01) {
+      const wr = windAngle * Math.PI / 180;
+      wx = windSpeed * Math.cos(wr);
+      wz = windSpeed * Math.sin(wr);
+    }
+
+    const vh = v0 * Math.cos(elev);
+    let x = 0, y = h0, z = 0;
+    let vx = vh * Math.cos(aim);
+    let vy = v0 * Math.sin(elev);
+    let vz = vh * Math.sin(aim);
+    let t = 0, maxH = h0, vLand = 0;
+
+    const pts = recordPts ? [{x:0, y:h0, z:0, r:0}] : null;
+    const dt = 0.0005;
+    const MAXT = 6;
+    let lastX = 0, lastY = h0, lastZ = 0;
+
+    while (t < MAXT) {
+      const rvx = vx - wx, rvy = vy, rvz = vz - wz;
+      const sp = Math.sqrt(rvx*rvx + rvy*rvy + rvz*rvz);
+      const ax = -k * sp * rvx;
+      const ay = -k * sp * rvy - g;
+      const az = -k * sp * rvz;
+
+      vx += ax * dt; vy += ay * dt; vz += az * dt;
+
+      const nx = x + vx * dt;
+      const ny = y + vy * dt;
+      const nz = z + vz * dt;
+      t += dt;
+
+      if (ny <= 0) {
+        const f = y / (y - ny);
+        x = x + (nx - x) * f;
+        z = z + (nz - z) * f;
+        y = 0;
+        if (recordPts) pts.push({x:x, y:0, z:z, r:Math.hypot(x,z)});
+        vLand = Math.sqrt(vx*vx + vy*vy + vz*vz);
+        break;
+      }
+
+      x = nx; y = ny; z = nz;
+      if (y > maxH) maxH = y;
+
+      if (recordPts){
+        const dx = x - lastX, dy = y - lastY, dz = z - lastZ;
+        if (dx*dx + dy*dy + dz*dz > 0.0016) {
+          pts.push({x:x, y:y, z:z, r:Math.hypot(x,z)});
+          lastX = x; lastY = y; lastZ = z;
+        }
+      }
+    }
+
+    if (recordPts && pts[pts.length-1].y !== 0) {
+      pts.push({x:x, y:0, z:z, r:Math.hypot(x,z)});
+    }
+
+    const range = Math.hypot(x, z);
+    const angleFromCenter = Math.atan2(z, x);
+    const valid = Math.abs(angleFromCenter) <= state.halfAngle;
+
+    return { pts, x, z, range, maxH, time:t, vLand, angleFromCenter, valid };
+  }
+
+  function simulate(){
+    return simulateCore(state.v0, state.angle, state.h0, state.aimAngle, state.windSpeed, state.windAngle, true);
+  }
+
+  const view = {
+    top: { ox:0, oy:0, s:1, ready:false },
+    side: { x0:0, groundY:0, s:1, ready:false },
+    scene: { ready:false }
+  };
+
+  function fit(canvas){
+    const dpr = window.devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width));
+    const h = Math.max(1, Math.round(r.height));
+    if (canvas.width !== w*dpr || canvas.height !== h*dpr) {
+      canvas.width = w*dpr; canvas.height = h*dpr;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx, W:w, H:h};
+  }
+
+  function drawGrid(ctx, W, H, gap){
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.028)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = gap; x < W; x += gap) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); }
+    for (let y = gap; y < H; y += gap) { ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function arrowLen(v){ return 22 + ((v - 0) / 20) * 60; }
+
+  function project3D(x, y, z, cx, cy, scale){
+    const ca = Math.cos(cam.azim), sa = Math.sin(cam.azim);
+    const ce = Math.cos(cam.elev), se = Math.sin(cam.elev);
+    const x1 = x * ca + z * sa;
+    const z1 = -x * sa + z * ca;
+    const y1 = y;
+    const x2 = x1;
+    const y2 = y1 * ce - z1 * se;
+    const z2 = y1 * se + z1 * ce;
+    return { sx: cx + x2 * scale, sy: cy - y2 * scale, depth: z2 };
+  }
+
+  function getVisiblePts(pts){
+    if (!pts || pts.length < 2) return pts;
+    if (!animating) return pts;
+    const t = clamp(animProgress, 0, 1);
+    const n = Math.max(2, Math.floor(pts.length * t));
+    return pts.slice(0, n);
+  }
+
+  /* ================= 三维视图 ================= */
+  function drawScene(){
+    const {ctx, W, H} = fit(sceneCanvas);
+    if (W < 4 || H < 4) return;
+    ctx.clearRect(0, 0, W, H);
+    drawGrid(ctx, W, H, 30);
+
+    const spanX = Math.max(sim.x * 1.2, 5);
+    const spanZ = Math.max(Math.abs(sim.z) * 1.4, 2.2);
+    const spanY = Math.max(sim.maxH * 1.3, 2.8);
+    const maxSpan = Math.max(spanX, spanZ * 1.2, spanY * 1.4);
+
+    const scale = Math.min(W, H) * 0.82 / maxSpan * cam.dist;
+    const cx = W * 0.5;
+    const cy = H * 0.62;
+    view.scene.ready = true;
+    const half = state.halfAngle;
+
+    const gridN = 8;
+    const gx0 = -1, gx1 = spanX;
+    const gz0 = -spanZ, gz1 = spanZ;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.055)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= gridN; i++){
+      const x = gx0 + (gx1 - gx0) * i / gridN;
+      const a = project3D(x, 0, gz0, cx, cy, scale);
+      const b = project3D(x, 0, gz1, cx, cy, scale);
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }
+    for (let i = 0; i <= gridN; i++){
+      const z = gz0 + (gz1 - gz0) * i / gridN;
+      const a = project3D(gx0, 0, z, cx, cy, scale);
+      const b = project3D(gx1, 0, z, cx, cy, scale);
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }
+    ctx.restore();
+
+    const fanR = Math.max(spanX, spanZ / Math.tan(half)) * 1.0;
+    const seg = 40;
+    ctx.beginPath();
+    let p0 = project3D(0, 0, 0, cx, cy, scale);
+    ctx.moveTo(p0.sx, p0.sy);
+    for (let i = 0; i <= seg; i++){
+      const a = -half + (2 * half) * i / seg;
+      const p = project3D(fanR * Math.cos(a), 0, fanR * Math.sin(a), cx, cy, scale);
+      ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(79,209,197,.10)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(79,209,197,.42)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    for (const sgn of [-1, 1]){
+      const a = sgn * half;
+      const p1 = project3D(0, 0, 0, cx, cy, scale);
+      const p2 = project3D(fanR * Math.cos(a), 0, fanR * Math.sin(a), cx, cy, scale);
+      ctx.beginPath(); ctx.moveTo(p1.sx, p1.sy); ctx.lineTo(p2.sx, p2.sy);
+      ctx.strokeStyle = 'rgba(79,209,197,.75)'; ctx.lineWidth = 1.6; ctx.stroke();
+    }
+
+    const crPts = 40;
+    ctx.beginPath();
+    for (let i = 0; i <= crPts; i++){
+      const a = Math.PI * 2 * i / crPts;
+      const p = project3D(state.radius * Math.cos(a), 0.005, state.radius * Math.sin(a), cx, cy, scale);
+      if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,179,71,.14)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,179,71,.85)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    for (const tr of traces){
+      if (!tr.pts || tr.pts.length < 2) continue;
+      ctx.beginPath();
+      for (let i = 0; i < tr.pts.length; i++){
+        const p = project3D(tr.pts[i].x, tr.pts[i].y, tr.pts[i].z, cx, cy, scale);
+        if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+      }
+      ctx.strokeStyle = tr.color;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      const last = tr.pts[tr.pts.length - 1];
+      const lp = project3D(last.x, 0.02, last.z, cx, cy, scale);
+      ctx.beginPath();
+      ctx.arc(lp.sx, lp.sy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = tr.color;
+      ctx.globalAlpha = 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const aimRad = state.aimAngle * Math.PI / 180;
+    const aimOut = Math.abs(state.aimAngle) > OUT_ANGLE;
+    const aimColor = aimOut ? '#ff6b6b' : '#ffb347';
+    const aimLen = fanR * 0.98;
+    const aimStart = project3D(0, 0.02, 0, cx, cy, scale);
+    const aimEnd = project3D(aimLen * Math.cos(aimRad), 0.02, aimLen * Math.sin(aimRad), cx, cy, scale);
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(aimStart.sx, aimStart.sy);
+    ctx.lineTo(aimEnd.sx, aimEnd.sy);
+    ctx.strokeStyle = aimColor;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    if (state.windSpeed > 0.05 && state.airOn){
+      const wr = state.windAngle * Math.PI / 180;
+      const wx = Math.cos(wr);
+      const wz = Math.sin(wr);
+      const wLen = 1.2 + state.windSpeed * 0.42;
+      const a = project3D(0, 0.02, 0, cx, cy, scale);
+      const b = project3D(wx * wLen, 0.02, wz * wLen, cx, cy, scale);
+      const tailComp = Math.cos(wr);
+      let wcol;
+      if (tailComp > 0.35) wcol = '#4fd1c5';
+      else if (tailComp < -0.35) wcol = '#ff6b6b';
+      else wcol = '#ffcf8a';
+
+      ctx.save();
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      ctx.strokeStyle = wcol;
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const ang2 = Math.atan2(b.sy - a.sy, b.sx - a.sx);
+      ctx.beginPath();
+      ctx.moveTo(b.sx, b.sy);
+      ctx.lineTo(b.sx - Math.cos(ang2 - 0.45) * 9, b.sy - Math.sin(ang2 - 0.45) * 9);
+      ctx.lineTo(b.sx - Math.cos(ang2 + 0.45) * 9, b.sy - Math.sin(ang2 + 0.45) * 9);
+      ctx.closePath();
+      ctx.fillStyle = wcol;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const pts = sim.pts;
+    const visPts = getVisiblePts(pts);
+    if (visPts && visPts.length > 1){
+      ctx.beginPath();
+      for (let i = 0; i < visPts.length; i++){
+        const p = project3D(visPts[i].x, 0.005, visPts[i].z, cx, cy, scale);
+        if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+      }
+      ctx.strokeStyle = sim.valid ? 'rgba(255,179,71,.30)' : 'rgba(255,107,107,.30)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([3, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      for (let i = 0; i < visPts.length; i++){
+        const p = project3D(visPts[i].x, visPts[i].y, visPts[i].z, cx, cy, scale);
+        if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+      }
+      ctx.strokeStyle = sim.valid ? '#ffb347' : '#ff6b6b';
+      ctx.lineWidth = 2.8;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = sim.valid ? 'rgba(255,179,71,.8)' : 'rgba(255,107,107,.8)';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      if (animating && visPts.length > 0){
+        const last = visPts[visPts.length - 1];
+        const bp = project3D(last.x, last.y, last.z, cx, cy, scale);
+        const bg = ctx.createRadialGradient(bp.sx, bp.sy, 0, bp.sx, bp.sy, 14);
+        bg.addColorStop(0, 'rgba(255,255,255,.55)');
+        bg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath();
+        ctx.arc(bp.sx, bp.sy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = bg;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bp.sx, bp.sy, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+    }
+
+    const hp = project3D(0, state.h0, 0, cx, cy, scale);
+    const hg = ctx.createRadialGradient(hp.sx, hp.sy, 0, hp.sx, hp.sy, 16);
+    hg.addColorStop(0, 'rgba(255,179,71,.6)');
+    hg.addColorStop(1, 'rgba(255,179,71,0)');
+    ctx.beginPath();
+    ctx.arc(hp.sx, hp.sy, 16, 0, Math.PI * 2);
+    ctx.fillStyle = hg;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hp.sx, hp.sy, 4.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffb347';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,13,20,.9)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    const rad = state.angle * Math.PI / 180;
+    const vLen3 = arrowLen(state.v0) / 46;
+    const vdx3 = vLen3 * Math.cos(rad) * Math.cos(aimRad);
+    const vdy3 = vLen3 * Math.sin(rad);
+    const vdz3 = vLen3 * Math.cos(rad) * Math.sin(aimRad);
+    const vEnd = project3D(vdx3, state.h0 + vdy3, vdz3, cx, cy, scale);
+
+    ctx.beginPath();
+    ctx.moveTo(hp.sx, hp.sy);
+    ctx.lineTo(vEnd.sx, vEnd.sy);
+    ctx.strokeStyle = 'rgba(79,209,197,.9)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    const vAng = Math.atan2(vEnd.sy - hp.sy, vEnd.sx - hp.sx);
+    ctx.beginPath();
+    ctx.moveTo(vEnd.sx, vEnd.sy);
+    ctx.lineTo(vEnd.sx - Math.cos(vAng - 0.42) * 9, vEnd.sy - Math.sin(vAng - 0.42) * 9);
+    ctx.lineTo(vEnd.sx - Math.cos(vAng + 0.42) * 9, vEnd.sy - Math.sin(vAng + 0.42) * 9);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(79,209,197,.9)';
+    ctx.fill();
+
+    if (pts && pts.length > 1){
+      let apex = pts[0];
+      for (const p of pts) if (p.y > apex.y) apex = p;
+      if (apex.y > state.h0 + 0.05 && apex.r > 0.05){
+        const ap = project3D(apex.x, apex.y, apex.z, cx, cy, scale);
+        ctx.beginPath();
+        ctx.arc(ap.sx, ap.sy, 3.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,.85)';
+        ctx.fill();
+        ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = 'rgba(255,255,255,.5)';
+        ctx.fillText('最高 ' + apex.y.toFixed(2) + 'm', ap.sx + 8, ap.sy - 6);
+      }
+    }
+
+    if (!animating){
+      const lp = project3D(sim.x, 0.02, sim.z, cx, cy, scale);
+      const lc = sim.valid ? '79,209,197' : '255,107,107';
+      const lg = ctx.createRadialGradient(lp.sx, lp.sy, 0, lp.sx, lp.sy, 22);
+      lg.addColorStop(0, `rgba(${lc},.55)`);
+      lg.addColorStop(1, `rgba(${lc},0)`);
+      ctx.beginPath();
+      ctx.arc(lp.sx, lp.sy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = lg;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(lp.sx, lp.sy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = sim.valid ? '#4fd1c5' : '#ff6b6b';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+
+    drawSceneAxes(ctx, cx, cy, scale);
+
+    ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillText(
+      (mode === 'analysis' ? '分析模式 · 自动演示仅扫描角度' : '拖拽旋转视角 · 滚轮缩放') +
+      (state.airOn ? '' : ' · 真空模式'),
+      14, H - 10
+    );
+  }
+
+  function drawSceneAxes(ctx, cx, cy, scale){
+    const origin = project3D(0, 0, 0, cx, cy, scale);
+    const axLen = 1.1;
+    const axes = [
+      { d:[axLen,0,0], c:'rgba(255,107,107,.75)', label:'X' },
+      { d:[0,axLen,0], c:'rgba(79,209,197,.75)',  label:'Y' },
+      { d:[0,0,axLen], c:'rgba(138,180,255,.75)', label:'Z' }
+    ];
+    ctx.save();
+    ctx.lineWidth = 1.6;
+    ctx.font = '600 10px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const ax of axes){
+      const p = project3D(ax.d[0], ax.d[1], ax.d[2], cx, cy, scale);
+      ctx.beginPath();
+      ctx.moveTo(origin.sx, origin.sy);
+      ctx.lineTo(p.sx, p.sy);
+      ctx.strokeStyle = ax.c;
+      ctx.stroke();
+      ctx.fillStyle = ax.c;
+      ctx.fillText(ax.label, p.sx + (p.sx - origin.sx) * 0.08, p.sy + (p.sy - origin.sy) * 0.08 - 8);
+    }
+    ctx.restore();
+  }
+
+  /* ================= 俯视图 ================= */
+  function drawTop(){
+    const {ctx, W, H} = fit(topCanvas);
+    if (W < 4 || H < 4) return;
+    ctx.clearRect(0, 0, W, H);
+    drawGrid(ctx, W, H, 24);
+
+    const half = state.halfAngle;
+    const spanX = Math.max(sim.x * 1.15, 3.5);
+    const spanZ = Math.max(Math.abs(sim.z) * 1.30, spanX * Math.tan(half) * 0.95, 1.2);
+
+    const padL = 48, padR = 48, padT = 20, padB = 28;
+    const sx = (W - padL - padR) / spanX;
+    const sy = (H / 2 - padT) / spanZ;
+    const s = Math.min(sx, sy);
+
+    const ox = padL;
+    const oy = H / 2;
+    view.top.ox = ox; view.top.oy = oy; view.top.s = s; view.top.ready = true;
+    const fanR = Math.max(spanX, spanZ / Math.tan(half)) * s;
+
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.arc(ox, oy, fanR, -half, half);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(ox, oy, ox + fanR, oy);
+    grad.addColorStop(0, 'rgba(79,209,197,.20)');
+    grad.addColorStop(1, 'rgba(79,209,197,.025)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(79,209,197,.55)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.setLineDash([2, 5]);
+    for (let d = 2; d * s <= fanR + 1; d += 2) {
+      ctx.beginPath();
+      ctx.arc(ox, oy, d * s, -half, half);
+      ctx.strokeStyle = 'rgba(255,255,255,.07)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(ox + fanR, oy);
+    ctx.strokeStyle = 'rgba(255,255,255,.13)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = '9.5px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let d = 2; d * s <= fanR + 1; d += 2) {
+      const X = ox + d * s;
+      if (X > W - 22) break;
+      ctx.fillStyle = 'rgba(255,255,255,.20)';
+      ctx.fillText(d + 'm', X, oy + 7);
+    }
+
+    const cr = state.radius * s;
+    ctx.beginPath();
+    ctx.arc(ox, oy, cr, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,179,71,.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,179,71,.8)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ox, oy, cr + 2, -0.55, 0.55);
+    ctx.strokeStyle = 'rgba(255,179,71,.45)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    for (const tr of traces){
+      if (!tr.pts || tr.pts.length < 2) continue;
+      ctx.beginPath();
+      for (let i = 0; i < tr.pts.length; i++){
+        const X = ox + tr.pts[i].x * s;
+        const Y = oy - tr.pts[i].z * s;
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = tr.color;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([2, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      const last = tr.pts[tr.pts.length - 1];
+      const lx = ox + last.x * s;
+      const ly = oy - last.z * s;
+      ctx.beginPath();
+      ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+      ctx.fillStyle = tr.color;
+      ctx.globalAlpha = 0.75;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const aimRad = state.aimAngle * Math.PI / 180;
+    const aimOut = Math.abs(state.aimAngle) > OUT_ANGLE;
+    const aimColor = aimOut ? '#ff6b6b' : '#ffb347';
+    const aLenPx = fanR * 0.98;
+    const aex = ox + Math.cos(aimRad) * aLenPx;
+    const aey = oy - Math.sin(aimRad) * aLenPx;
+
+    ctx.save();
+    ctx.globalAlpha = 0.88;
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(aex, aey);
+    ctx.strokeStyle = aimColor;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.setLineDash([7, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(aex, aey);
+    ctx.lineTo(aex - Math.cos(aimRad - 0.42) * 11, aey + Math.sin(aimRad - 0.42) * 11);
+    ctx.lineTo(aex - Math.cos(aimRad + 0.42) * 11, aey + Math.sin(aimRad + 0.42) * 11);
+    ctx.closePath();
+    ctx.fillStyle = aimColor;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.font = '600 10px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = aimColor;
+    const lblR = aLenPx * 0.72;
+    const lblX = ox + Math.cos(aimRad) * lblR;
+    const lblY = oy - Math.sin(aimRad) * lblR;
+    ctx.fillText((state.aimAngle >= 0 ? '+' : '') + state.aimAngle.toFixed(1) + '°', lblX, lblY - 12);
+
+    if (state.windSpeed > 0.05 && state.airOn){
+      const wr = state.windAngle * Math.PI / 180;
+      const dxs = Math.cos(wr);
+      const dys = -Math.sin(wr);
+      const tailComp = Math.cos(wr);
+      let col;
+      if (tailComp > 0.35) col = '#4fd1c5';
+      else if (tailComp < -0.35) col = '#ff6b6b';
+      else col = '#ffcf8a';
+
+      const wlen = 16 + state.windSpeed * 5.5;
+      const startX = ox + dxs * 5;
+      const startY = oy + dys * 5;
+      const endX = ox + dxs * wlen;
+      const endY = oy + dys * wlen;
+
+      ctx.save();
+      ctx.globalAlpha = 0.72;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const ang = Math.atan2(dys, dxs);
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - Math.cos(ang - 0.5) * 9, endY - Math.sin(ang - 0.5) * 9);
+      ctx.lineTo(endX - Math.cos(ang + 0.5) * 9, endY - Math.sin(ang + 0.5) * 9);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const pts = sim.pts;
+    const visPts = getVisiblePts(pts);
+    if (visPts && visPts.length > 1) {
+      ctx.beginPath();
+      for (let i = 0; i < visPts.length; i++) {
+        const X = ox + visPts[i].x * s;
+        const Y = oy - visPts[i].z * s;
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = sim.valid ? 'rgba(255,179,71,.75)' : 'rgba(255,107,107,.75)';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (!animating){
+      const lx = ox + sim.x * s;
+      const ly = oy - sim.z * s;
+      const c = sim.valid ? '79,209,197' : '255,107,107';
+      const pulse = ctx.createRadialGradient(lx, ly, 0, lx, ly, 18);
+      pulse.addColorStop(0, `rgba(${c},.45)`);
+      pulse.addColorStop(1, `rgba(${c},0)`);
+      ctx.beginPath();
+      ctx.arc(lx, ly, 18, 0, Math.PI * 2);
+      ctx.fillStyle = pulse;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(lx, ly, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = sim.valid ? '#4fd1c5' : '#ff6b6b';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(ox, oy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,179,71,.95)';
+    ctx.fill();
+
+    ctx.font = '9.5px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = 'rgba(255,255,255,.16)';
+    ctx.fillText('按住拖动 → 改变投掷方向', W / 2, H - 6);
+  }
+
+  /* ================= 侧视图 ================= */
+  function drawSide(){
+    const {ctx, W, H} = fit(sideCanvas);
+    if (W < 4 || H < 4) return;
+    ctx.clearRect(0, 0, W, H);
+    drawGrid(ctx, W, H, 30);
+
+    const padL = 64, padR = 40, padT = 24, padB = 38;
+    const maxX = Math.max(sim.range * 1.12, 4);
+    const maxY = Math.max(sim.maxH * 1.22, 2.6);
+    const s = Math.min((W - padL - padR) / maxX, (H - padT - padB) / maxY);
+    const groundY = H - padB;
+    const x0 = padL;
+
+    const SX = x => x0 + x * s;
+    const SY = y => groundY - y * s;
+    view.side.x0 = x0; view.side.groundY = groundY; view.side.s = s; view.side.ready = true;
+
+    const gg = ctx.createLinearGradient(0, groundY, 0, groundY + 36);
+    gg.addColorStop(0, 'rgba(255,255,255,.055)');
+    gg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, groundY, W, 36);
+
+    ctx.beginPath();
+    ctx.moveTo(x0 - 28, groundY + .5);
+    ctx.lineTo(W - 8, groundY + .5);
+    ctx.strokeStyle = 'rgba(255,255,255,.28)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = '9.5px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const step = maxX > 16 ? 4 : 2;
+    for (let d = 0; d <= maxX; d += step) {
+      const X = SX(d);
+      if (X > W - 12) break;
+      ctx.beginPath();
+      ctx.moveTo(X + .5, groundY);
+      ctx.lineTo(X + .5, groundY + 5);
+      ctx.strokeStyle = 'rgba(255,255,255,.20)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.28)';
+      ctx.fillText(d + 'm', X, groundY + 15);
+    }
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let hh = 0; hh <= maxY; hh += 1) {
+      const Y = SY(hh);
+      if (Y < padT - 8) break;
+      ctx.beginPath();
+      ctx.moveTo(x0 - 5, Y + .5);
+      ctx.lineTo(x0, Y + .5);
+      ctx.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.24)';
+      ctx.fillText(hh + 'm', x0 - 10, Y);
+    }
+
+    for (const tr of traces){
+      if (!tr.pts || tr.pts.length < 2) continue;
+      ctx.beginPath();
+      for (let i = 0; i < tr.pts.length; i++){
+        const X = SX(tr.pts[i].r);
+        const Y = SY(tr.pts[i].y);
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = tr.color;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      const last = tr.pts[tr.pts.length - 1];
+      const X = SX(last.r);
+      ctx.beginPath();
+      ctx.arc(X, groundY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = tr.color;
+      ctx.globalAlpha = 0.75;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const pts = sim.pts;
+    const visPts = getVisiblePts(pts);
+
+    if (visPts && visPts.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(SX(visPts[0].r), groundY);
+      ctx.lineTo(SX(visPts[0].r), SY(visPts[0].y));
+      for (let i = 1; i < visPts.length; i++) ctx.lineTo(SX(visPts[i].r), SY(visPts[i].y));
+      ctx.lineTo(SX(visPts[visPts.length-1].r), groundY);
+      ctx.closePath();
+      const fg = ctx.createLinearGradient(0, SY(maxY * 0.55), 0, groundY);
+      if (sim.valid) {
+        fg.addColorStop(0, 'rgba(255,179,71,.20)');
+        fg.addColorStop(1, 'rgba(255,179,71,0)');
+      } else {
+        fg.addColorStop(0, 'rgba(255,107,107,.20)');
+        fg.addColorStop(1, 'rgba(255,107,107,0)');
+      }
+      ctx.fillStyle = fg;
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let i = 0; i < visPts.length; i++) {
+        const X = SX(visPts[i].r), Y = SY(visPts[i].y);
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = sim.valid ? '#ffb347' : '#ff6b6b';
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = sim.valid ? 'rgba(255,179,71,.75)' : 'rgba(255,107,107,.75)';
+      ctx.shadowBlur = 14;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      if (animating && visPts.length > 0){
+        const last = visPts[visPts.length - 1];
+        const X = SX(last.r), Y = SY(last.y);
+        ctx.beginPath();
+        ctx.arc(X, Y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+    }
+
+    ctx.save();
+    ctx.setLineDash([4, 5]);
+    ctx.beginPath();
+    ctx.moveTo(x0, groundY);
+    ctx.lineTo(x0, SY(state.h0));
+    ctx.strokeStyle = 'rgba(255,255,255,.28)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+
+    const hx = SX(0), hy = SY(state.h0);
+    const hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 16);
+    hg.addColorStop(0, 'rgba(255,179,71,.55)');
+    hg.addColorStop(1, 'rgba(255,179,71,0)');
+    ctx.beginPath();
+    ctx.arc(hx, hy, 16, 0, Math.PI * 2);
+    ctx.fillStyle = hg;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hx, hy, 4.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffb347';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,13,20,.9)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    const rad = state.angle * Math.PI / 180;
+    const aLen = arrowLen(state.v0);
+    const vdx = Math.cos(rad) * aLen;
+    const vdy = -Math.sin(rad) * aLen;
+    const tipX = hx + vdx, tipY = hy + vdy;
+
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(tipX, tipY);
+    ctx.strokeStyle = 'rgba(79,209,197,.85)';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    const ang = Math.atan2(vdy, vdx);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - Math.cos(ang - 0.4) * 8, tipY - Math.sin(ang - 0.4) * 8);
+    ctx.lineTo(tipX - Math.cos(ang + 0.4) * 8, tipY - Math.sin(ang + 0.4) * 8);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(79,209,197,.85)';
+    ctx.fill();
+
+    if (!animating){
+      const lx = SX(sim.range);
+      const lc = sim.valid ? '79,209,197' : '255,107,107';
+      const lg = ctx.createRadialGradient(lx, groundY, 0, lx, groundY, 20);
+      lg.addColorStop(0, `rgba(${lc},.5)`);
+      lg.addColorStop(1, `rgba(${lc},0)`);
+      ctx.beginPath();
+      ctx.arc(lx, groundY, 20, 0, Math.PI * 2);
+      ctx.fillStyle = lg;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(lx, groundY, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = sim.valid ? '#4fd1c5' : '#ff6b6b';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.font = '600 10.5px ui-monospace, Menlo, Consolas, monospace';
+      ctx.fillStyle = sim.valid ? 'rgba(79,209,197,.9)' : 'rgba(255,107,107,.9)';
+      ctx.fillText(sim.range.toFixed(2) + ' m', lx, groundY - 10);
+    }
+  }
+
+  /* ================= 角度-距离曲线图 ================= */
+  function computeAngleCurve(){
+    const data = [];
+    let bestRange = -1, bestAngle = null;
+    for (let a = 0; a <= 90; a += 1){
+      const res = simulateCore(state.v0, a, state.h0, state.aimAngle, state.windSpeed, state.windAngle, false);
+      data.push({ angle: a, range: res.range, valid: res.valid });
+      if (res.valid && res.range > bestRange){
+        bestRange = res.range;
+        bestAngle = a;
+      }
+    }
+    return { data, bestAngle, bestRange };
+  }
+
+  function drawCurveChart(){
+    if (!curveCanvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = curveCanvas.getBoundingClientRect();
+    const W = Math.max(1, Math.round(rect.width));
+    const H = Math.max(1, Math.round(rect.height));
+    if (curveCanvas.width !== W*dpr || curveCanvas.height !== H*dpr){
+      curveCanvas.width = W*dpr;
+      curveCanvas.height = H*dpr;
+    }
+    const ctx = curveCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    const {data, bestAngle, bestRange} = computeAngleCurve();
+    if (data.length === 0) return;
+
+    const padL = 34, padR = 10, padT = 14, padB = 20;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    let maxR = 0;
+    for (const d of data) if (d.valid && d.range > maxR) maxR = d.range;
+    if (maxR <= 0) maxR = 1;
+    const yMax = maxR * 1.12;
+
+    const X = a => padL + (a / 90) * plotW;
+    const Y = r => padT + plotH - (r / yMax) * plotH;
+
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    for (let a = 0; a <= 90; a += 15){
+      ctx.beginPath();
+      ctx.moveTo(X(a) + .5, padT);
+      ctx.lineTo(X(a) + .5, padT + plotH);
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 4; i++){
+      const r = (yMax / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padL, Y(r) + .5);
+      ctx.lineTo(padL + plotW, Y(r) + .5);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.beginPath();
+    ctx.moveTo(padL + .5, padT);
+    ctx.lineTo(padL + .5, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    ctx.font = '9px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,.32)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let a = 0; a <= 90; a += 15){
+      ctx.fillText(a + '°', X(a), padT + plotH + 3);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++){
+      const r = (yMax / 4) * i;
+      ctx.fillText(r.toFixed(1), padL - 4, Y(r));
+    }
+
+    ctx.beginPath();
+    let first = true;
+    for (const d of data){
+      if (!d.valid) continue;
+      const x = X(d.angle), y = Y(d.range);
+      if (first){ ctx.moveTo(x, y); first = false; }
+      else ctx.lineTo(x, y);
+    }
+    const grad = ctx.createLinearGradient(padL, padT, padL, padT + plotH);
+    grad.addColorStop(0, 'rgba(255,179,71,.98)');
+    grad.addColorStop(1, 'rgba(255,179,71,.42)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(255,179,71,.5)';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    if (bestAngle != null){
+      const bx = X(bestAngle);
+      const by = Y(bestRange);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(79,209,197,.55)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(bx, padT + plotH);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(bx, by, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#4fd1c5';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = '700 9.5px ui-monospace, Menlo, Consolas, monospace';
+      ctx.fillStyle = '#4fd1c5';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const tx = Math.min(Math.max(bx, padL + 14), padL + plotW - 14);
+      ctx.fillText(bestAngle + '°', tx, by - 8);
+    }
+
+    const curRes = simulateCore(state.v0, state.angle, state.h0, state.aimAngle, state.windSpeed, state.windAngle, false);
+    if (curRes.valid){
+      const cx2 = X(state.angle);
+      const cy2 = Y(curRes.range);
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffb347';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    const ga = document.getElementById('goldenAngle');
+    if (ga) ga.textContent = bestAngle != null ? bestAngle + '°' : '—';
+  }
+
+  /* ================= 读数 ================= */
+  function updateJoyReadout(){
+    if (state.windSpeed < 0.05 || !state.airOn) {
+      joyReadout.textContent = state.airOn ? '无风' : '真空（无风影响）';
+      joyReadout.className = 'joy-readout calm';
+      return;
+    }
+    const name = getWindName(state.windAngle);
+    const angTxt = state.windAngle.toFixed(0) + '°';
+    joyReadout.textContent = name + ' ' + state.windSpeed.toFixed(1) + ' m/s · ' + angTxt;
+    const tailComp = Math.cos(state.windAngle * Math.PI / 180);
+    if (tailComp > 0.35)       joyReadout.className = 'joy-readout good';
+    else if (tailComp < -0.35) joyReadout.className = 'joy-readout bad';
+    else                       joyReadout.className = 'joy-readout mid';
+  }
+
+  function syncJoystickVisual(){
+    const rect = joyBase.getBoundingClientRect();
+    const R = rect.width / 2 - JOY_R_INSET;
+    const mag = Math.min(state.windSpeed / 10, 1);
+    const rad = state.windAngle * Math.PI / 180;
+    const dx = Math.cos(rad) * mag * R;
+    const dy = -Math.sin(rad) * mag * R;
+    joyHandle.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+  }
+
+  function resetJoystickVisual(){
+    joyHandle.style.transform = 'translate(0px, 0px)';
+  }
+
+  function updateReadouts(){
+    const heroEl  = document.getElementById('heroBox');
+    const heroLbl = document.getElementById('heroLbl');
+    const scoreEl = document.getElementById('rScore');
+
+    if (sim.valid) {
+      const score = Math.max(sim.range - state.radius, 0);
+      heroEl.classList.remove('foul');
+      heroLbl.textContent = '有效成绩';
+      scoreEl.textContent = score.toFixed(2);
+    } else {
+      heroEl.classList.add('foul');
+      heroLbl.textContent = '判定结果';
+      scoreEl.textContent = '无效成绩';
+    }
+
+    document.getElementById('rRange').innerHTML = sim.range.toFixed(2) + '<small>m</small>';
+    document.getElementById('rTime').innerHTML  = sim.time.toFixed(2)  + '<small>s</small>';
+    document.getElementById('rMaxH').innerHTML  = sim.maxH.toFixed(2)  + '<small>m</small>';
+
+    const latEl   = document.getElementById('rLat');
+    const latStat = document.getElementById('latStat');
+    const z = sim.z;
+    latEl.innerHTML = (z >= 0 ? '+' : '') + z.toFixed(2) + '<small>m</small>';
+    latStat.classList.toggle('foul', Math.abs(z) > 0.5);
+
+    const aimEl = document.getElementById('aimVal');
+    const aimRO = document.getElementById('aimReadout');
+    const txt = (state.aimAngle >= 0 ? '+' : '') + state.aimAngle.toFixed(1) + '°';
+    aimEl.textContent = txt;
+    aimEl.classList.toggle('warn', Math.abs(state.aimAngle) > OUT_ANGLE);
+    aimRO.textContent = txt;
+
+    updateJoyReadout();
+    fitParabola();
+  }
+
+  function fitParabola(){
+    const pts = sim.pts;
+    if (!pts || pts.length < 6){
+      document.getElementById('fbEq').textContent = '—';
+      document.getElementById('fbNote').textContent = '';
+      return;
+    }
+
+    const n = pts.length;
+    const start = Math.floor(n * 0.02);
+    const end = Math.max(start + 4, n - 1);
+    const data = [];
+    for (let i = start; i <= end; i++){
+      const p = pts[i];
+      if (p.y > 0 || i === end) data.push({ x: p.r, y: p.y });
+    }
+    if (data.length < 5){
+      document.getElementById('fbEq').textContent = '—';
+      return;
+    }
+
+    let S0 = data.length, S1 = 0, S2 = 0, S3 = 0, S4 = 0;
+    let T0 = 0, T1 = 0, T2 = 0;
+    for (const d of data){
+      const x = d.x, y = d.y;
+      const x2 = x * x;
+      S1 += x; S2 += x2; S3 += x2 * x; S4 += x2 * x2;
+      T0 += y; T1 += x * y; T2 += x2 * y;
+    }
+
+    const A = [
+      [S0, S1, S2],
+      [S1, S2, S3],
+      [S2, S3, S4]
+    ];
+    const B = [T0, T1, T2];
+    const sol = solve3(A, B);
+    if (!sol){
+      document.getElementById('fbEq').textContent = '—';
+      return;
+    }
+    const [c, b, a] = sol;
+
+    const vx = -b / (2 * a);
+    const vy = c - b * b / (4 * a);
+
+    const fmt = (v, d=3) => {
+      const s = v.toFixed(d);
+      return s.replace(/\.?0+$/, '') || '0';
+    };
+    const sign = (v) => v >= 0 ? '+' : '−';
+
+    const eq = `y = <b>${fmt(a,4)}</b>x² ${sign(b)} <b>${fmt(Math.abs(b),3)}</b>x ${sign(c)} <b>${fmt(Math.abs(c),3)}</b>`;
+    document.getElementById('fbEq').innerHTML = eq;
+    document.getElementById('fbNote').textContent =
+      (state.airOn ? '' : '真空 · ') +
+      `${state.mass.toFixed(1)}kg · ` +
+      `顶点 (${vx.toFixed(2)}, ${vy.toFixed(2)}) · 落点 ${sim.range.toFixed(2)} m`;
+  }
+
+  function solve3(A, B){
+    const M = A.map((row, i) => [...row, B[i]]);
+    for (let col = 0; col < 3; col++){
+      let piv = col;
+      for (let r = col + 1; r < 3; r++)
+        if (Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r;
+      if (Math.abs(M[piv][col]) < 1e-12) return null;
+      [M[col], M[piv]] = [M[piv], M[col]];
+      for (let r = 0; r < 3; r++){
+        if (r === col) continue;
+        const f = M[r][col] / M[col][col];
+        for (let k = col; k < 4; k++) M[r][k] -= f * M[col][k];
+      }
+    }
+    return [M[0][3]/M[0][0], M[1][3]/M[1][1], M[2][3]/M[2][2]];
+  }
+
+  function render(){
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function(){
+      pending = false;
+      drawScene();
+      drawSide();
+      drawTop();
+      drawCurveChart();
+    });
+  }
+
+  function update(){
+    sim = simulate();
+    updateReadouts();
+    render();
+  }
+
+  function playTrajectoryAnimation(duration){
+    duration = duration || 1000;
+    animProgress = 0;
+    animating = true;
+    animStartTime = performance.now();
+    function step(now){
+      const t = clamp((now - animStartTime) / duration, 0, 1);
+      animProgress = t;
+      if (t >= 1){
+        animating = false;
+        animProgress = 1;
+        render();
+        return;
+      }
+      render();
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ================= 轨迹留痕 ================= */
+  function updateTraceCount(){
+    traceCount.textContent = traces.length;
+    traceBtnLabel.textContent = traces.length === 0 ? '留下当前曲线' : `再留一条（已留 ${traces.length}）`;
+    traceBtn.classList.toggle('on', traces.length > 0);
+    clearTraceBtn.disabled = traces.length === 0;
+    clearTraceBtn.style.opacity = traces.length === 0 ? 0.45 : 1;
+  }
+
+  function addTrace(){
+    const res = simulateCore(state.v0, state.angle, state.h0, state.aimAngle, state.windSpeed, state.windAngle, true);
+    if (!res.pts || res.pts.length < 2) return;
+    const color = TRACE_COLORS[traceCounter % TRACE_COLORS.length];
+    traceCounter++;
+    traces.push({
+      id: traceCounter,
+      v0: state.v0,
+      angle: state.angle,
+      h0: state.h0,
+      aimAngle: state.aimAngle,
+      windSpeed: state.windSpeed,
+      windAngle: state.windAngle,
+      airOn: state.airOn,
+      mass: state.mass,
+      pts: res.pts,
+      valid: res.valid,
+      range: res.range,
+      color
+    });
+    while (traces.length > 8){
+      traces.shift();
+    }
+    updateTraceCount();
+    render();
+  }
+
+  function clearTraces(){
+    traces.length = 0;
+    updateTraceCount();
+    render();
+  }
+
+  traceBtn.addEventListener('click', addTrace);
+  clearTraceBtn.addEventListener('click', clearTraces);
+
+  /* ================= CSV 导出 ================= */
+  function downloadCSV(){
+    const lines = [];
+    const now = new Date();
+    const ts = now.toLocaleString('zh-CN', { hour12: false });
+
+    lines.push('# 铅球试投模拟器 - 实验数据导出');
+    lines.push(`# 导出时间,${ts}`);
+    lines.push(`# 物理模型,${state.airOn ? '含空气阻力' : '真空（无阻力）'}`);
+    lines.push(`# 铅球质量,${state.mass.toFixed(1)},kg`);
+    lines.push(`# 出手速度,${state.v0.toFixed(1)},m/s`);
+    lines.push(`# 出手高度,${state.h0.toFixed(2)},m`);
+    lines.push(`# 当前角度,${state.angle},度`);
+    lines.push(`# 水平偏角,${state.aimAngle.toFixed(1)},度`);
+    if (state.windSpeed < 0.05){
+      lines.push('# 风环境,无风');
+    } else {
+      lines.push(`# 风环境,${state.windSpeed.toFixed(1)}m/s @ ${state.windAngle.toFixed(0)}度`);
+    }
+    lines.push('');
+
+    lines.push('# 表1：角度-距离扫描（v0 和 h0 固定，角度 0-90 度）');
+    lines.push('角度(度),落点距离(m),有效成绩(m),是否有效');
+    let bestRange = -1, bestAngle = null;
+    for (let a = 0; a <= 90; a += 1){
+      const res = simulateCore(state.v0, a, state.h0, state.aimAngle, state.windSpeed, state.windAngle, false);
+      const valid = res.valid;
+      const score = valid ? Math.max(res.range - state.radius, 0) : 0;
+      if (valid && res.range > bestRange){
+        bestRange = res.range;
+        bestAngle = a;
+      }
+      lines.push(`${a},${res.range.toFixed(4)},${score.toFixed(4)},${valid ? '有效' : '出界'}`);
+    }
+    lines.push('');
+    lines.push(`# 黄金角,${bestAngle != null ? bestAngle : '无'}度`);
+    lines.push(`# 黄金角落点距离,${bestRange > 0 ? bestRange.toFixed(4) : '0'}m`);
+    lines.push('');
+
+    lines.push(`# 表2：当前轨迹点（v0=${state.v0.toFixed(1)}m/s, 角度=${state.angle}度, h0=${state.h0.toFixed(2)}m）`);
+    lines.push('水平距离x(m),高度y(m),横向偏移z(m),斜距r(m)');
+    const cur = simulateCore(state.v0, state.angle, state.h0, state.aimAngle, state.windSpeed, state.windAngle, true);
+    if (cur.pts){
+      for (const p of cur.pts){
+        lines.push(`${p.x.toFixed(4)},${p.y.toFixed(4)},${p.z.toFixed(4)},${p.r.toFixed(4)}`);
+      }
+    }
+    lines.push('');
+
+    if (traces.length > 0){
+      lines.push(`# 表3：留痕轨迹（共 ${traces.length} 条）`);
+      lines.push('编号,v0(m/s),角度(度),h0(m),质量(kg),物理模型,落点(m),是否有效');
+      for (const tr of traces){
+        lines.push(`${tr.id},${tr.v0.toFixed(1)},${tr.angle},${tr.h0.toFixed(2)},${tr.mass.toFixed(1)},${tr.airOn ? '含阻力' : '真空'},${tr.range.toFixed(4)},${tr.valid ? '有效' : '出界'}`);
+      }
+    }
+
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const ymd = now.toISOString().slice(0,10);
+    const hms = now.toTimeString().slice(0,8).replace(/:/g, '-');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `铅球实验数据_${ymd}_${hms}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  /* ================= 滑块控件 ================= */
+  const controls = {};
+  function makeControl(opts){
+    const r = document.getElementById(opts.rangeId);
+    const n = document.getElementById(opts.numId);
+    const key = opts.key;
+    const dec = opts.decimals;
+    const min = parseFloat(r.min);
+    const max = parseFloat(r.max);
+
+    function paint(v){
+      r.style.setProperty('--p', ((v - min) / (max - min) * 100) + '%');
+    }
+    function set(v){
+      v = clamp(v, min, max);
+      r.value = v;
+      n.value = v.toFixed(dec);
+      state[key] = v;
+      paint(v);
+    }
+
+    r.addEventListener('input', () => {
+      const v = parseFloat(r.value);
+      state[key] = v;
+      n.value = v.toFixed(dec);
+      paint(v);
+      update();
+    });
+    n.addEventListener('input', () => {
+      const v = parseFloat(n.value);
+      if (!isNaN(v) && v >= min && v <= max) {
+        r.value = v; state[key] = v; paint(v); update();
+      }
+    });
+    n.addEventListener('blur', () => {
+      let v = parseFloat(n.value);
+      if (isNaN(v)) v = state[key];
+      v = clamp(v, min, max);
+      n.value = v.toFixed(dec);
+      r.value = v; state[key] = v; paint(v); update();
+    });
+    n.addEventListener('keydown', e => { if (e.key === 'Enter') n.blur(); });
+
+    set(parseFloat(r.value));
+    controls[key] = { set };
+  }
+  makeControl({rangeId:'v0',   numId:'v0n',   key:'v0',    decimals:1});
+  makeControl({rangeId:'ag',   numId:'agn',   key:'angle', decimals:0});
+  makeControl({rangeId:'h0',   numId:'h0n',   key:'h0',    decimals:2});
+  makeControl({rangeId:'mass', numId:'massn', key:'mass',  decimals:1});
+
+  /* ================= 空气阻力开关 ================= */
+  airToggle.addEventListener('click', () => {
+    state.airOn = !state.airOn;
+    airToggle.classList.toggle('on', state.airOn);
+    airToggle.classList.toggle('amber', state.airOn);
+    update();
+  });
+
+  /* ================= 风速输入框 ================= */
+  wdInput.addEventListener('input', () => {
+    const v = parseFloat(wdInput.value);
+    if (isNaN(v)) return;
+    state.windSpeed = clamp(v, 0, 10);
+    syncJoystickVisual();
+    updateJoyReadout();
+    update();
+  });
+  wdInput.addEventListener('blur', () => {
+    let v = parseFloat(wdInput.value);
+    if (isNaN(v)) v = state.windSpeed;
+    v = clamp(v, 0, 10);
+    wdInput.value = v.toFixed(1);
+    state.windSpeed = v;
+    syncJoystickVisual();
+    updateJoyReadout();
+    update();
+  });
+  function syncWindInput(){ wdInput.value = state.windSpeed.toFixed(1); }
+
+  document.getElementById('exportCsvBtn').addEventListener('click', downloadCSV);
+
+  /* ================= 模式切换 ================= */
+  function setMode(m){
+    mode = m;
+    modeSlider.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === m);
+    });
+    if (m === 'demo'){
+      v0Ctrl.style.display = '';
+      analysisGroup.style.display = 'none';
+    } else {
+      v0Ctrl.style.display = 'none';
+      analysisGroup.style.display = '';
+    }
+    render();
+  }
+
+  modeSlider.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    setMode(btn.dataset.mode);
+  });
+
+  /* ================= 哈希编号 ================= */
+  function hashName(name){
+    let h = 5381;
+    for (let i = 0; i < name.length; i++){
+      h = ((h << 5) + h) + name.charCodeAt(i);
+      h |= 0;
+    }
+    return '#' + Math.abs(h).toString(16).toUpperCase().padStart(8, '0').slice(0, 8);
+  }
+
+  /* ================= 去极值平均 ================= */
+  function computeTrimmedMean(values){
+    const arr = values.filter(v => typeof v === 'number' && isFinite(v));
+    if (arr.length === 0) return null;
+    if (arr.length === 1) return arr[0];
+    if (arr.length === 2) return (arr[0] + arr[1]) / 2;
+    const sorted = [...arr].sort((a,b) => a-b);
+    const trimmed = sorted.slice(1, -1);
+    return trimmed.reduce((s,v) => s + v, 0) / trimmed.length;
+  }
+
+  function getAthleteMeanSpeed(a){
+    return computeTrimmedMean(a.records.map(r => r.v0));
+  }
+  function getAthleteMeanH0(a){
+    return computeTrimmedMean(a.records.map(r => r.h0).filter(v => typeof v === 'number'));
+  }
+  function getAthleteMeanAngle(a){
+    return computeTrimmedMean(a.records.map(r => r.angle).filter(v => typeof v === 'number'));
+  }
+
+  /* ================= 运动员列表渲染 ================= */
+  function renderAthleteList(){
+    athleteCount.textContent = athletes.length;
+
+    if (athletes.length === 0){
+      athleteList.innerHTML = '<div class="empty-hint">暂无运动员数据<br>点击上方按钮导入视频开始分析</div>';
+      return;
+    }
+
+    athleteList.innerHTML = '';
+    athletes.forEach((a, idx) => {
+      const div = document.createElement('div');
+      div.className = 'athlete-item';
+      if (idx === activeAthleteIndex) div.classList.add('open');
+      div.dataset.idx = idx;
+
+      const mean = getAthleteMeanSpeed(a);
+      const meanTxt = mean != null ? mean.toFixed(2) + ' m/s' : '—';
+      const n = a.records.length;
+      const trimNote = n >= 3 ? '去极值平均' : (n === 2 ? '平均' : '单条');
+
+      const bestAngleTxt = a.bestAngle != null
+        ? '最佳 ' + a.bestAngle.toFixed(0) + '°'
+        : '';
+
+      let recordsHtml = '';
+      a.records.forEach((r, ridx) => {
+        const angleStr = (r.angle != null) ? `<span class="ang">${r.angle.toFixed(0)}°</span>` : '';
+        recordsHtml += `
+          <div class="record-item" data-ridx="${ridx}">
+            <div class="record-main">
+              <span class="record-speed">${r.v0.toFixed(2)} m/s${angleStr}</span>
+              <span class="record-date">${escapeHtml(r.createdAt)}${r.dist != null ? ' · ' + r.dist.toFixed(3) + ' m' : ''}</span>
+            </div>
+            <button class="record-del" data-action="del-record" data-ridx="${ridx}" title="删除该记录">×</button>
+          </div>
+        `;
+      });
+
+      div.innerHTML = `
+        <div class="athlete-head">
+          <div class="athlete-avatar">${escapeHtml(a.name.slice(0, 1).toUpperCase())}</div>
+          <div class="athlete-main">
+            <div class="athlete-name">${escapeHtml(a.name)}</div>
+            <div class="athlete-hash">${a.hash}</div>
+          </div>
+          <div class="athlete-speed">
+            <span class="mean">${meanTxt}</span>
+            <span class="n">${n} 条 · ${trimNote}</span>
+            ${bestAngleTxt ? `<span class="best">${bestAngleTxt}</span>` : ''}
+          </div>
+          <span class="athlete-arrow">▼</span>
+        </div>
+        <div class="athlete-detail">
+          <div class="record-list">
+            <div class="record-list-title">
+              <span>历史记录</span>
+              <span class="trim">${n >= 3 ? '应用时去掉最高最低' : '应用时直接平均'}</span>
+            </div>
+            ${recordsHtml}
+          </div>
+          <div class="athlete-actions">
+            <button data-action="apply">应用去极值平均并演示</button>
+            <button class="danger" data-action="delete">删除</button>
+          </div>
+        </div>
+      `;
+      athleteList.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  listBtn.addEventListener('click', () => {
+    listBtn.classList.toggle('expanded');
+    athleteList.classList.toggle('expanded');
+  });
+
+  athleteList.addEventListener('click', e => {
+    const item = e.target.closest('.athlete-item');
+    if (!item) return;
+    const idx = parseInt(item.dataset.idx, 10);
+
+    const delBtn = e.target.closest('button[data-action="del-record"]');
+    if (delBtn){
+      e.stopPropagation();
+      const ridx = parseInt(delBtn.dataset.ridx, 10);
+      const athlete = athletes[idx];
+      if (athlete && athlete.records[ridx] != null){
+        athlete.records.splice(ridx, 1);
+        if (athlete.records.length === 0){
+          athletes.splice(idx, 1);
+          if (activeAthleteIndex === idx) activeAthleteIndex = -1;
+          else if (activeAthleteIndex > idx) activeAthleteIndex--;
+        }
+        renderAthleteList();
+        updateAthleteSelect();
+      }
+      return;
+    }
+
+    const actionBtn = e.target.closest('button[data-action]');
+    if (actionBtn){
+      e.stopPropagation();
+      const action = actionBtn.dataset.action;
+      const athlete = athletes[idx];
+      if (!athlete) return;
+
+      if (action === 'delete'){
+        athletes.splice(idx, 1);
+        if (activeAthleteIndex === idx) activeAthleteIndex = -1;
+        else if (activeAthleteIndex > idx) activeAthleteIndex--;
+        renderAthleteList();
+        updateAthleteSelect();
+        return;
+      }
+      if (action === 'apply'){
+        activeAthleteIndex = idx;
+        applyAthlete(athlete);
+        return;
+      }
+      return;
+    }
+
+    if (e.target.closest('.athlete-head')){
+      const wasOpen = item.classList.contains('open');
+      item.classList.toggle('open');
+      if (!wasOpen){
+        activeAthleteIndex = idx;
+        applyAthlete(athletes[idx]);
+      }
+    }
+  });
+
+  function applyAthlete(a){
+    if (!a || a.records.length === 0) return;
+
+    const v0 = getAthleteMeanSpeed(a);
+    if (v0 != null){
+      state.v0 = clamp(v0, 0, 20);
+      controls.v0.set(state.v0);
+    }
+    const h0 = getAthleteMeanH0(a);
+    if (h0 != null){
+      state.h0 = clamp(h0, 1.2, 2.2);
+      controls.h0.set(state.h0);
+    }
+    if (a.bestAngle != null){
+      state.angle = clamp(a.bestAngle, 0, 90);
+      controls.angle.set(state.angle);
+    } else {
+      const ang = getAthleteMeanAngle(a);
+      if (ang != null){
+        state.angle = clamp(ang, 0, 90);
+        controls.angle.set(state.angle);
+      }
+    }
+
+    update();
+
+    if (mode === 'analysis'){
+      playTrajectoryAnimation(1000);
+    }
+  }
+
+  /* ================= 视频分析 ================= */
+  const vState = {
+    file: null, url: null,
+    videoEl: document.getElementById('analysisVideo'),
+    canvas: document.getElementById('analysisCanvas'),
+    ctx: null,
+    scale: null,
+    refPx: 0,
+    rulerPts: [],
+    marks: [],
+    tool: 'none',
+    markLockTime: 0,
+    computedSpeed: null,
+    computedDist: null,
+    computedAngle: null,
+    computedH0: null,
+    seeking: false
+  };
+  vState.ctx = vState.canvas.getContext('2d');
+
+  const dropzone = document.getElementById('dropzone');
+  const videoFileInput = document.getElementById('videoFileInput');
+  const videoWrap = document.getElementById('videoWrap');
+  const videoToolbar = document.getElementById('videoToolbar');
+  const calcSpeedBtn = document.getElementById('calcSpeedBtn');
+  const saveAthleteBtn = document.getElementById('saveAthleteBtn');
+  const nameBadge = document.getElementById('nameBadge');
+  const videoBadge = document.getElementById('videoBadge');
+  const scaleBadge = document.getElementById('scaleBadge');
+  const markBadge = document.getElementById('markBadge');
+  const pixelLenVal = document.getElementById('pixelLenVal');
+  const scaleVal = document.getElementById('scaleVal');
+  const markDistVal = document.getElementById('markDistVal');
+  const markRealVal = document.getElementById('markRealVal');
+  const angleVal = document.getElementById('angleVal');
+  const heightVal = document.getElementById('heightVal');
+  const vaResult = document.getElementById('vaResult');
+  const athleteNameInput = document.getElementById('athleteNameInput');
+  const athleteSelect = document.getElementById('athleteSelect');
+  const refLenInput = document.getElementById('refLenInput');
+  const refNameSelect = document.getElementById('refNameSelect');
+  const seekBar = document.getElementById('seekBar');
+  const timeTxt = document.getElementById('timeTxt');
+  const btnPrevFrame = document.getElementById('btnPrevFrame');
+  const btnNextFrame = document.getElementById('btnNextFrame');
+  const btnPlayPause = document.getElementById('btnPlayPause');
+  const btnToolRuler = document.getElementById('btnToolRuler');
+  const btnToolMark = document.getElementById('btnToolMark');
+
+  function lockVideoControls(lock){
+    seekBar.disabled = lock;
+    btnPrevFrame.disabled = lock;
+    btnNextFrame.disabled = lock;
+    btnPlayPause.disabled = lock;
+  }
+
+  function fmtTime(t){
+    if (!isFinite(t)) t = 0;
+    return t.toFixed(2);
+  }
+  function updateSeekUI(){
+    const v = vState.videoEl;
+    const dur = v.duration || 0;
+    const cur = v.currentTime || 0;
+    const pct = dur > 0 ? (cur / dur) * 100 : 0;
+    if (!vState.seeking){
+      seekBar.value = Math.round(pct * 10);
+      seekBar.style.setProperty('--p', pct + '%');
+    }
+    timeTxt.textContent = fmtTime(cur) + ' / ' + fmtTime(dur) + ' s';
+  }
+  seekBar.addEventListener('input', () => {
+    if (seekBar.disabled) return;
+    vState.seeking = true;
+    const v = vState.videoEl;
+    const dur = v.duration || 0;
+    const pct = parseFloat(seekBar.value) / 1000;
+    seekBar.style.setProperty('--p', (pct * 100) + '%');
+    if (dur > 0){
+      v.currentTime = pct * dur;
+      timeTxt.textContent = fmtTime(v.currentTime) + ' / ' + fmtTime(dur) + ' s';
+    }
+  });
+  seekBar.addEventListener('change', () => {
+    vState.seeking = false;
+    updateSeekUI();
+  });
+  seekBar.addEventListener('pointerup', () => {
+    if (vState.seeking){
+      vState.seeking = false;
+      updateSeekUI();
+    }
+  });
+  seekBar.addEventListener('pointercancel', () => {
+    vState.seeking = false;
+    updateSeekUI();
+  });
+  seekBar.addEventListener('touchend', () => {
+    if (vState.seeking){
+      vState.seeking = false;
+      updateSeekUI();
+    }
+  });
+  vState.videoEl.addEventListener('loadedmetadata', updateSeekUI);
+  vState.videoEl.addEventListener('timeupdate', () => {
+    if (!vState.seeking) updateSeekUI();
+    drawAnalysisOverlay();
+  });
+  vState.videoEl.addEventListener('seeked', () => {
+    updateSeekUI();
+    drawAnalysisOverlay();
+  });
+  vState.videoEl.addEventListener('play', updateSeekUI);
+  vState.videoEl.addEventListener('pause', updateSeekUI);
+
+  function updateAthleteSelect(){
+    const current = athleteSelect.value;
+    athleteSelect.innerHTML = '<option value="__new__">新运动员</option>';
+    athletes.forEach((a, idx) => {
+      const opt = document.createElement('option');
+      opt.value = String(idx);
+      opt.textContent = `${a.name}  (${a.records.length} 条)  ${a.hash}`;
+      athleteSelect.appendChild(opt);
+    });
+    if (current && current !== '__new__' && athletes[parseInt(current, 10)]){
+      athleteSelect.value = current;
+    } else {
+      athleteSelect.value = '__new__';
+    }
+  }
+
+  athleteSelect.addEventListener('change', () => {
+    const val = athleteSelect.value;
+    if (val === '__new__'){
+      athleteNameInput.value = '';
+      athleteNameInput.disabled = false;
+      athleteNameInput.focus();
+      nameBadge.textContent = '必填';
+      nameBadge.classList.remove('done');
+    } else {
+      const idx = parseInt(val, 10);
+      const a = athletes[idx];
+      if (a){
+        athleteNameInput.value = a.name;
+        athleteNameInput.disabled = true;
+        nameBadge.textContent = a.hash;
+        nameBadge.classList.add('done');
+      }
+    }
+  });
+
+  importVideoBtn.addEventListener('click', () => {
+    resetVideoAnalysis();
+    updateAthleteSelect();
+    athleteSelect.value = '__new__';
+    athleteNameInput.value = '';
+    athleteNameInput.disabled = false;
+    videoModal.classList.add('show');
+  });
+
+  function resetVideoAnalysis(){
+    if (vState.url) URL.revokeObjectURL(vState.url);
+    vState.file = null; vState.url = null;
+    vState.scale = null; vState.refPx = 0;
+    vState.rulerPts = []; vState.marks = [];
+    vState.tool = 'none';
+    vState.markLockTime = 0;
+    vState.computedSpeed = null; vState.computedDist = null;
+    vState.computedAngle = null; vState.computedH0 = null;
+    vState.seeking = false;
+
+    videoFileInput.value = '';
+    vState.videoEl.removeAttribute('src');
+    vState.videoEl.load();
+
+    videoWrap.classList.remove('show');
+    videoToolbar.style.display = 'none';
+    vaResult.classList.remove('show');
+
+    lockVideoControls(false);
+
+    nameBadge.textContent = '必填';
+    nameBadge.classList.remove('done');
+    videoBadge.textContent = '未选择';
+    videoBadge.classList.remove('done');
+    scaleBadge.textContent = '未设置';
+    scaleBadge.classList.remove('done');
+    markBadge.textContent = '0 / 3';
+    markBadge.classList.remove('done');
+
+    pixelLenVal.textContent = '—';
+    scaleVal.textContent = '—';
+    markDistVal.textContent = '—';
+    markRealVal.textContent = '—';
+    angleVal.textContent = '—';
+    heightVal.textContent = '—';
+    seekBar.value = 0;
+    seekBar.style.setProperty('--p', '0%');
+    timeTxt.textContent = '0.00 / 0.00 s';
+
+    refLenInput.value = '1.00';
+    refNameSelect.value = '地面标尺 1.00';
+    refLenInput.disabled = true;
+
+    calcSpeedBtn.disabled = true;
+    saveAthleteBtn.disabled = true;
+
+    document.querySelectorAll('.va-toolbar button').forEach(b => b.classList.remove('active'));
+    vState.ctx.clearRect(0, 0, vState.canvas.width, vState.canvas.height);
+  }
+
+  dropzone.addEventListener('click', () => videoFileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('over');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadVideoFile(f);
+  });
+  videoFileInput.addEventListener('change', () => {
+    const f = videoFileInput.files && videoFileInput.files[0];
+    if (f) loadVideoFile(f);
+  });
+
+  function loadVideoFile(file){
+    if (!file.type.startsWith('video/')){
+      alert('请选择视频文件');
+      return;
+    }
+    if (vState.url) URL.revokeObjectURL(vState.url);
+    vState.file = file;
+    vState.url = URL.createObjectURL(file);
+    vState.videoEl.src = vState.url;
+    vState.videoEl.load();
+    videoWrap.classList.add('show');
+    videoToolbar.style.display = '';
+
+    videoBadge.textContent = file.name.length > 18 ? file.name.slice(0, 16) + '…' : file.name;
+    videoBadge.classList.add('done');
+
+    vState.videoEl.onloadedmetadata = () => {
+      resizeAnalysisCanvas();
+      drawAnalysisOverlay();
+      vState.videoEl.currentTime = 0;
+      updateSeekUI();
+    };
+  }
+
+  function resizeAnalysisCanvas(){
+    const rect = vState.videoEl.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    vState.canvas.style.width = w + 'px';
+    vState.canvas.style.height = h + 'px';
+    vState.canvas.width = Math.round(w * dpr);
+    vState.canvas.height = Math.round(h * dpr);
+    vState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function drawAnalysisOverlay(){
+    const ctx = vState.ctx;
+    const W = vState.canvas.clientWidth;
+    const H = vState.canvas.clientHeight;
+    ctx.clearRect(0, 0, W, H);
+
+    if (vState.rulerPts.length === 2){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,179,71,.95)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(vState.rulerPts[0].x, vState.rulerPts[0].y);
+      ctx.lineTo(vState.rulerPts[1].x, vState.rulerPts[1].y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      vState.rulerPts.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffb347';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(10,13,20,.9)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+      const mx = (vState.rulerPts[0].x + vState.rulerPts[1].x) / 2;
+      const my = (vState.rulerPts[0].y + vState.rulerPts[1].y) / 2;
+      ctx.font = '700 11px ui-monospace, Menlo, Consolas, monospace';
+      ctx.fillStyle = '#ffd9a0';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('参照长度', mx + 30, my);
+      ctx.restore();
+    } else if (vState.rulerPts.length === 1){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(vState.rulerPts[0].x, vState.rulerPts[0].y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffb347';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const MARK_COLORS = ['#a3e635', '#ffb347', '#ff6b6b'];
+    const MARK_LABELS = ['① 地面投影', '② 出手', '③ 0.05s后'];
+
+    if (vState.marks.length >= 2){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(163,230,53,.6)';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(vState.marks[0].x, vState.marks[0].y);
+      ctx.lineTo(vState.marks[1].x, vState.marks[1].y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+    if (vState.marks.length >= 3){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,107,107,.85)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(vState.marks[1].x, vState.marks[1].y);
+      ctx.lineTo(vState.marks[2].x, vState.marks[2].y);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.35)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(vState.marks[1].x, vState.marks[1].y);
+      ctx.lineTo(vState.marks[2].x, vState.marks[1].y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    vState.marks.forEach((m, i) => {
+      const color = MARK_COLORS[i] || '#ffffff';
+      const label = MARK_LABELS[i] || '';
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 22, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.18;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,13,20,.9)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (label){
+        ctx.font = '700 11px ui-monospace, Menlo, Consolas, monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, m.x + 10, m.y - 8);
+      }
+      ctx.restore();
+    });
+
+    if (vState.marks.length === 3){
+      const A2 = vState.marks[1], A3 = vState.marks[2];
+      const ang = Math.atan2(A2.y - A3.y, Math.abs(A3.x - A2.x)) * 180 / Math.PI;
+      const mx = (A2.x + A3.x) / 2;
+      const my = (A2.y + A3.y) / 2;
+      const label = ang.toFixed(1) + '°';
+      ctx.font = '700 11px ui-monospace, Menlo, Consolas, monospace';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(10,13,20,.85)';
+      ctx.fillRect(mx - tw/2 - 6, my - 26, tw + 12, 18);
+      ctx.strokeStyle = 'rgba(167,139,250,.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(mx - tw/2 - 6, my - 26, tw + 12, 18);
+      ctx.fillStyle = '#d8c9ff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, mx, my - 17);
+    }
+  }
+
+  /* ============== 画布点击（唯一入口） ============== */
+  function handleCanvasClick(clientX, clientY){
+    if (!vState.videoEl.src) return;
+    if (vState.tool === 'none') return;
+
+    const rect = vState.canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    if (vState.tool === 'ruler'){
+      if (vState.rulerPts.length >= 2){
+        vState.rulerPts = [];
+        vState.scale = null;
+        vState.refPx = 0;
+        pixelLenVal.textContent = '—';
+        scaleVal.textContent = '—';
+        scaleBadge.textContent = '未设置';
+        scaleBadge.classList.remove('done');
+      }
+      vState.rulerPts.push({ x, y });
+      drawAnalysisOverlay();
+
+      if (vState.rulerPts.length === 2){
+        const pxH = Math.hypot(
+          vState.rulerPts[1].x - vState.rulerPts[0].x,
+          vState.rulerPts[1].y - vState.rulerPts[0].y
+        );
+        const realLen = parseFloat(refLenInput.value) || 1.0;
+        if (pxH > 5 && realLen > 0.01){
+          vState.refPx = pxH;
+          vState.scale = pxH / realLen;
+          pixelLenVal.textContent = pxH.toFixed(1) + ' px';
+          scaleVal.textContent = vState.scale.toFixed(1) + ' px/m';
+          scaleBadge.textContent = '已设置';
+          scaleBadge.classList.add('done');
+        }
+      }
+    } else if (vState.tool === 'mark'){
+      if (vState.marks.length >= 3) return;
+
+      if (vState.marks.length === 0){
+        vState.markLockTime = vState.videoEl.currentTime || 0;
+      }
+
+      vState.marks.push({ x, y });
+      drawAnalysisOverlay();
+
+      if (vState.marks.length === 1){
+        markBadge.textContent = '1 / 3';
+      } else if (vState.marks.length === 2){
+        const t0 = vState.markLockTime;
+        const d = vState.videoEl.duration || (t0 + MARK_DT);
+        const target = Math.min(t0 + MARK_DT, d);
+        vState.videoEl.currentTime = target;
+        markBadge.textContent = '2 / 3';
+      } else if (vState.marks.length === 3){
+        markBadge.textContent = '3 / 3';
+        markBadge.classList.add('done');
+        lockVideoControls(false);
+        computeFromMarks();
+      }
+    }
+  }
+
+  /* 只绑 pointerdown —— 兼容鼠标/触控/手写笔，且不会与 touchstart 重复触发 */
+  vState.canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleCanvasClick(e.clientX, e.clientY);
+  });
+
+  /* ============== 三点计算 ============== */
+  function computeFromMarks(){
+    if (vState.marks.length < 3) return;
+    if (!vState.scale){
+      alert('请先量已知长度设置比例尺');
+      return;
+    }
+
+    const A1 = vState.marks[0];
+    const A2 = vState.marks[1];
+    const A3 = vState.marks[2];
+
+    const hPx = Math.abs(A2.y - A1.y);
+    const h0 = hPx / vState.scale;
+
+    const dPx = Math.hypot(A3.x - A2.x, A3.y - A2.y);
+    const dReal = dPx / vState.scale;
+    const speed = dReal / MARK_DT;
+
+    const dxPx = Math.abs(A3.x - A2.x);
+    const dyPx = A2.y - A3.y;
+    let angle = Math.atan2(dyPx, dxPx) * 180 / Math.PI;
+    if (dxPx < 0.5 && Math.abs(dyPx) < 0.5){
+      angle = 0;
+    }
+
+    vState.computedSpeed = speed;
+    vState.computedDist = dReal;
+    vState.computedAngle = angle;
+    vState.computedH0 = h0;
+
+    heightVal.textContent = h0.toFixed(3) + ' m';
+    markDistVal.textContent = dPx.toFixed(1) + ' px';
+    markRealVal.textContent = dReal.toFixed(3) + ' m';
+    angleVal.textContent = angle.toFixed(1) + '°';
+
+    document.getElementById('resSpeed').innerHTML = speed.toFixed(2) + '<small>m/s</small>';
+    document.getElementById('resH0').innerHTML = h0.toFixed(2) + '<small>m</small>';
+    document.getElementById('resAngle').innerHTML = angle.toFixed(1) + '<small>°</small>';
+    vaResult.classList.add('show');
+    saveAthleteBtn.disabled = false;
+    calcSpeedBtn.disabled = false;
+
+    if (angle < 0){
+      alert('检测到出手角度为负！\n\n请检查标记顺序：\n① 出手时铅球于地面的垂直投影\n② 出手时的铅球位置\n③ 0.05 秒后铅球的位置\n\n（③ 应在 ② 的上方）\n\n本次数据不会同步到主面板。');
+      return;
+    }
+
+    const v0c = clamp(speed, 0, 20);
+    const angc = clamp(angle, 0, 90);
+    const h0c = clamp(h0, 1.2, 2.2);
+    state.v0 = v0c;
+    state.angle = angc;
+    state.h0 = h0c;
+    controls.v0.set(v0c);
+    controls.angle.set(angc);
+    controls.h0.set(h0c);
+    update();
+  }
+
+  calcSpeedBtn.addEventListener('click', () => {
+    computeFromMarks();
+  });
+
+  /* ============== 视频播放控制 ============== */
+  btnPrevFrame.addEventListener('click', () => {
+    if (!vState.videoEl.src) return;
+    if (btnPrevFrame.disabled) return;
+    vState.videoEl.pause();
+    vState.videoEl.currentTime = Math.max(0, vState.videoEl.currentTime - 1/30);
+  });
+  btnNextFrame.addEventListener('click', () => {
+    if (!vState.videoEl.src) return;
+    if (btnNextFrame.disabled) return;
+    vState.videoEl.pause();
+    const d = vState.videoEl.duration || 0;
+    vState.videoEl.currentTime = Math.min(d, vState.videoEl.currentTime + 1/30);
+  });
+  btnPlayPause.addEventListener('click', () => {
+    if (!vState.videoEl.src) return;
+    if (btnPlayPause.disabled) return;
+    if (vState.videoEl.paused){
+      vState.videoEl.play();
+      btnPlayPause.textContent = '暂停';
+    } else {
+      vState.videoEl.pause();
+      btnPlayPause.textContent = '播放';
+    }
+  });
+  vState.videoEl.addEventListener('pause', () => btnPlayPause.textContent = '播放');
+  vState.videoEl.addEventListener('play', () => btnPlayPause.textContent = '暂停');
+
+  /* ============== 工具栏：量长度 ============== */
+  btnToolRuler.addEventListener('click', () => {
+    if (vState.tool === 'mark'){
+      vState.tool = 'none';
+      resetMarks();
+      lockVideoControls(false);
+    }
+    vState.tool = vState.tool === 'ruler' ? 'none' : 'ruler';
+    updateToolButtons();
+  });
+
+  /* ============== 工具栏：标记 ============== */
+  btnToolMark.addEventListener('click', () => {
+    const wasMark = vState.tool === 'mark';
+    if (wasMark){
+      vState.tool = 'none';
+      resetMarks();
+      lockVideoControls(false);
+    } else {
+      if (vState.tool === 'ruler'){
+        vState.tool = 'none';
+      }
+      vState.tool = 'mark';
+      resetMarks();
+      if (vState.videoEl.src){
+        vState.videoEl.pause();
+        vState.markLockTime = vState.videoEl.currentTime || 0;
+        lockVideoControls(true);
+      }
+    }
+    updateToolButtons();
+  });
+
+  function resetMarks(){
+    vState.marks = [];
+    vState.computedSpeed = null;
+    vState.computedDist = null;
+    vState.computedAngle = null;
+    vState.computedH0 = null;
+    markDistVal.textContent = '—';
+    markRealVal.textContent = '—';
+    angleVal.textContent = '—';
+    heightVal.textContent = '—';
+    markBadge.textContent = '0 / 3';
+    markBadge.classList.remove('done');
+    vaResult.classList.remove('show');
+    saveAthleteBtn.disabled = true;
+    calcSpeedBtn.disabled = true;
+    drawAnalysisOverlay();
+  }
+
+  function updateToolButtons(){
+    document.querySelectorAll('.va-toolbar .tool-btn').forEach(b => b.classList.remove('active'));
+    if (vState.tool === 'ruler') btnToolRuler.classList.add('active');
+    if (vState.tool === 'mark') btnToolMark.classList.add('active');
+  }
+
+  /* ============== 参照物下拉 ============== */
+  refNameSelect.addEventListener('change', () => {
+    const v = refNameSelect.value;
+    if (v === '__custom__'){
+      refLenInput.disabled = false;
+      refLenInput.focus();
+    } else {
+      refLenInput.disabled = true;
+      refLenInput.value = parseFloat(v.split(' ').pop()).toFixed(2);
+      recomputeScale();
+    }
+  });
+  refLenInput.addEventListener('input', () => recomputeScale());
+
+  function recomputeScale(){
+    const realLen = parseFloat(refLenInput.value) || 1.0;
+    if (vState.refPx > 5 && realLen > 0.01){
+      vState.scale = vState.refPx / realLen;
+      scaleVal.textContent = vState.scale.toFixed(1) + ' px/m';
+      if (vState.marks.length === 3){
+        computeFromMarks();
+      }
+    }
+  }
+
+  /* ============== 保存到历史 ============== */
+  saveAthleteBtn.addEventListener('click', () => {
+    const name = (athleteNameInput.value || '').trim();
+    if (!name){ alert('请输入运动员姓名'); return; }
+    if (vState.computedSpeed == null){ alert('请先完成三点标记'); return; }
+
+    const v0 = clamp(vState.computedSpeed, 0, 20);
+    const ang = vState.computedAngle != null ? clamp(vState.computedAngle, 0, 90) : null;
+    const h0 = clamp(vState.computedH0 || 1.8, 1.2, 2.2);
+
+    const record = {
+      v0,
+      angle: ang,
+      h0,
+      dist: vState.computedDist,
+      time: MARK_DT,
+      createdAt: new Date().toLocaleString('zh-CN', { hour12: false }).slice(0, 16)
+    };
+
+    let athlete = null;
+    if (athleteSelect.value !== '__new__'){
+      const idx = parseInt(athleteSelect.value, 10);
+      athlete = athletes[idx];
+    }
+    if (!athlete){
+      const found = athletes.find(a => a.name === name);
+      if (found) athlete = found;
+    }
+    if (!athlete){
+      athlete = {
+        name,
+        hash: hashName(name + '_' + Date.now()),
+        records: [],
+        bestAngle: null
+      };
+      athletes.push(athlete);
+      activeAthleteIndex = athletes.length - 1;
+    }
+
+    athlete.records.push(record);
+    renderAthleteList();
+    updateAthleteSelect();
+
+    videoModal.classList.remove('show');
+    if (!vState.videoEl.paused) vState.videoEl.pause();
+    lockVideoControls(false);
+
+    listBtn.classList.add('expanded');
+    athleteList.classList.add('expanded');
+
+    applyAthlete(athlete);
+  });
+
+  athleteNameInput.addEventListener('input', () => {
+    if (athleteNameInput.disabled) return;
+    const name = athleteNameInput.value.trim();
+    if (name){
+      nameBadge.textContent = hashName(name);
+      nameBadge.classList.add('done');
+    } else {
+      nameBadge.textContent = '必填';
+      nameBadge.classList.remove('done');
+    }
+  });
+
+  document.getElementById('videoCancel').addEventListener('click', () => {
+    videoModal.classList.remove('show');
+    if (vState.videoEl && !vState.videoEl.paused) vState.videoEl.pause();
+    lockVideoControls(false);
+  });
+  videoModal.addEventListener('click', e => {
+    if (e.target === videoModal){
+      videoModal.classList.remove('show');
+      if (vState.videoEl && !vState.videoEl.paused) vState.videoEl.pause();
+      lockVideoControls(false);
+    }
+  });
+
+  /* ================= 关于弹窗 ================= */
+  aboutBtn.addEventListener('click', () => aboutModal.classList.add('show'));
+  document.getElementById('aboutClose').addEventListener('click', () => aboutModal.classList.remove('show'));
+  aboutModal.addEventListener('click', e => {
+    if (e.target === aboutModal) aboutModal.classList.remove('show');
+  });
+
+  /* ================= 自动演示 ================= */
+  const picked = { v0: false, angle: true, h0: false };
+  pickList.addEventListener('click', e => {
+    const item = e.target.closest('.pick-item');
+    if (!item) return;
+    const key = item.dataset.key;
+    picked[key] = !picked[key];
+    item.classList.toggle('on', picked[key]);
+  });
+  document.getElementById('pickCancel').addEventListener('click', () => pickModal.classList.remove('show'));
+  pickModal.addEventListener('click', e => {
+    if (e.target === pickModal) pickModal.classList.remove('show');
+  });
+  document.getElementById('pickStart').addEventListener('click', () => {
+    if (!picked.v0 && !picked.angle && !picked.h0){
+      picked.angle = true;
+      pickList.querySelector('[data-key="angle"]').classList.add('on');
+      return;
+    }
+    pickModal.classList.remove('show');
+    setTimeout(() => startAuto(), 260);
+  });
+
+  const TOTAL_TARGET_MS = 15000;
+  const MIN_STEP = 12;
+  const MAX_STEP = 320;
+  const FINISH_DELAY = 560;
+  const SMOOTH_OMEGA = 7.2;
+  const SMOOTH_ZETA  = 1.0;
+
+  const autoState = {
+    combos: [], idx: 0, best: null,
+    lastStepTime: 0, lastFrameTime: 0,
+    done: false, doneTime: 0, stepInterval: 60,
+    cur: { v: 8, a: 42, h: 1.8 },
+    vel: { v: 0, a: 0, h: 0 },
+    target: { v: 8, a: 42, h: 1.8 }
+  };
+  let autoDemo = false;
+  let autoRaf = null;
+
+  function buildCombos(){
+    let useV = picked.v0;
+    let useA = picked.angle;
+    let useH = picked.h0;
+    if (mode === 'analysis'){
+      useV = false;
+      useA = true;
+      useH = false;
+    }
+
+    const vs = [];
+    for (let v = 0; v <= 20.001; v += 0.5) vs.push(Math.round(v * 10) / 10);
+    const angles = [];
+    for (let a = 0; a <= 90; a += 1) angles.push(a);
+    const heights = [1.2, 1.4, 1.6, 1.8, 2.0, 2.2];
+
+    const vList = useV ? vs : [state.v0];
+    const aList = useA ? angles : [state.angle];
+    const hList = useH ? heights : [state.h0];
+
+    const combos = [];
+    for (const h of hList) for (const v of vList) for (const a of aList)
+      combos.push({ v, a, h });
+    return combos;
+  }
+
+  function computeStepInterval(count){
+    if (count <= 1) return MAX_STEP;
+    let interval = TOTAL_TARGET_MS / count;
+    if (count <= 6)        interval = MAX_STEP;
+    else if (count <= 12)  interval = Math.max(interval, 200);
+    else if (count <= 30)  interval = Math.max(interval, 120);
+    else if (count <= 80)  interval = Math.max(interval, 60);
+    return clamp(interval, MIN_STEP, MAX_STEP);
+  }
+
+  function startAuto(){
+    autoState.combos = buildCombos();
+    autoState.stepInterval = computeStepInterval(autoState.combos.length);
+    autoDemo = true;
+    autoState.idx = 0; autoState.best = null;
+    autoState.lastStepTime = 0; autoState.lastFrameTime = 0;
+    autoState.done = false; autoState.doneTime = 0;
+    autoState.cur.v = state.v0; autoState.cur.a = state.angle; autoState.cur.h = state.h0;
+    autoState.vel.v = 0; autoState.vel.a = 0; autoState.vel.h = 0;
+    autoState.target.v = state.v0; autoState.target.a = state.angle; autoState.target.h = state.h0;
+
+    autoBtn.classList.add('on');
+    autoLabel.textContent = '演示中 0%';
+    resultModal.classList.remove('show');
+    autoRaf = requestAnimationFrame(autoStep);
+  }
+
+  function stopAuto(){
+    autoDemo = false;
+    if (autoRaf) cancelAnimationFrame(autoRaf);
+    autoRaf = null;
+    autoBtn.classList.remove('on');
+    autoLabel.textContent = '自动演示';
+  }
+
+  function finishAuto(){
+    autoDemo = false;
+    if (autoRaf) cancelAnimationFrame(autoRaf);
+    autoRaf = null;
+    autoBtn.classList.remove('on');
+    autoLabel.textContent = '自动演示';
+
+    if (autoState.best){
+      controls.v0.set(autoState.best.v);
+      controls.angle.set(autoState.best.a);
+      controls.h0.set(autoState.best.h);
+      state.aimAngle = 0;
+      update();
+
+      if (mode === 'analysis' && activeAthleteIndex >= 0 && activeAthleteIndex < athletes.length){
+        athletes[activeAthleteIndex].bestAngle = autoState.best.a;
+        renderAthleteList();
+      }
+
+      document.getElementById('mScore').textContent = autoState.best.score.toFixed(2);
+      document.getElementById('mV0').innerHTML = autoState.best.v.toFixed(1) + '<i>m/s</i>';
+      document.getElementById('mAngle').innerHTML = autoState.best.a.toFixed(0) + '<i>°</i>';
+      document.getElementById('mH0').innerHTML = autoState.best.h.toFixed(2) + '<i>m</i>';
+
+      if (mode === 'analysis'){
+        document.getElementById('mpV0').classList.add('frozen');
+        document.getElementById('mpAngle').classList.remove('frozen');
+        document.getElementById('mpH0').classList.add('frozen');
+      } else {
+        document.getElementById('mpV0').classList.toggle('frozen', !picked.v0);
+        document.getElementById('mpAngle').classList.toggle('frozen', !picked.angle);
+        document.getElementById('mpH0').classList.toggle('frozen', !picked.h0);
+      }
+
+      setTimeout(() => resultModal.classList.add('show'), 180);
+    }
+  }
+
+  function smoothStep(cur, vel, target, dt){
+    const k1 = 2 * SMOOTH_ZETA * SMOOTH_OMEGA;
+    const k2 = SMOOTH_OMEGA * SMOOTH_OMEGA;
+    const acc = k2 * (target - cur) - k1 * vel;
+    vel += acc * dt;
+    cur += vel * dt;
+    return { cur, vel };
+  }
+
+  function autoStep(ts){
+    if (!autoDemo) return;
+    if (autoState.lastFrameTime === 0){
+      autoState.lastFrameTime = ts;
+      autoState.lastStepTime = ts;
+    }
+    const dt = Math.min((ts - autoState.lastFrameTime) / 1000, 0.05);
+    autoState.lastFrameTime = ts;
+
+    if (!autoState.done){
+      let safety = 0;
+      while (
+        ts - autoState.lastStepTime >= autoState.stepInterval &&
+        autoState.idx < autoState.combos.length &&
+        safety < 240
+      ){
+        autoState.lastStepTime += autoState.stepInterval;
+        safety++;
+        const c = autoState.combos[autoState.idx];
+        const res = simulateCore(c.v, c.a, c.h, state.aimAngle, state.windSpeed, state.windAngle, false);
+        if (res.valid){
+          const score = Math.max(res.range - state.radius, 0);
+          if (!autoState.best || score > autoState.best.score){
+            autoState.best = { v: c.v, a: c.a, h: c.h, score, range: res.range };
+          }
+        }
+        autoState.target.v = c.v;
+        autoState.target.a = c.a;
+        autoState.target.h = c.h;
+        autoState.idx++;
+      }
+      const pct = Math.round(autoState.idx / autoState.combos.length * 100);
+      autoLabel.textContent = '演示中 ' + pct + '%';
+      if (autoState.idx >= autoState.combos.length){
+        autoState.done = true;
+        autoState.doneTime = ts;
+        if (autoState.best){
+          autoState.target.v = autoState.best.v;
+          autoState.target.a = autoState.best.a;
+          autoState.target.h = autoState.best.h;
+        }
+        autoLabel.textContent = '整理结果…';
+      }
+    } else {
+      if (ts - autoState.doneTime > FINISH_DELAY){
+        finishAuto();
+        return;
+      }
+    }
+
+    let r;
+    r = smoothStep(autoState.cur.v, autoState.vel.v, autoState.target.v, dt);
+    autoState.cur.v = r.cur; autoState.vel.v = r.vel;
+    r = smoothStep(autoState.cur.a, autoState.vel.a, autoState.target.a, dt);
+    autoState.cur.a = r.cur; autoState.vel.a = r.vel;
+    r = smoothStep(autoState.cur.h, autoState.vel.h, autoState.target.h, dt);
+    autoState.cur.h = r.cur; autoState.vel.h = r.vel;
+
+    controls.v0.set(autoState.cur.v);
+    controls.angle.set(autoState.cur.a);
+    controls.h0.set(autoState.cur.h);
+
+    update();
+    autoRaf = requestAnimationFrame(autoStep);
+  }
+
+  autoBtn.addEventListener('click', () => {
+    if (autoDemo){
+      stopAuto();
+    } else {
+      if (mode === 'analysis'){
+        picked.v0 = false;
+        picked.angle = true;
+        picked.h0 = false;
+        startAuto();
+      } else {
+        pickModal.classList.add('show');
+      }
+    }
+  });
+  document.getElementById('modalClose').addEventListener('click', () => resultModal.classList.remove('show'));
+  resultModal.addEventListener('click', e => {
+    if (e.target === resultModal) resultModal.classList.remove('show');
+  });
+
+  /* ================= 三维视图交互 ================= */
+  sceneCanvas.addEventListener('pointerdown', e => {
+    cam.dragging = true;
+    cam.lastX = e.clientX; cam.lastY = e.clientY;
+    sceneCanvas.setPointerCapture(e.pointerId);
+    sceneCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  sceneCanvas.addEventListener('pointermove', e => {
+    if (!cam.dragging) { sceneCanvas.style.cursor = 'grab'; return; }
+    const dx = e.clientX - cam.lastX;
+    const dy = e.clientY - cam.lastY;
+    cam.lastX = e.clientX; cam.lastY = e.clientY;
+    cam.azim += dx * 0.008;
+    cam.elev = clamp(cam.elev + dy * 0.008, 0.06, Math.PI * 0.48);
+    render();
+  });
+  sceneCanvas.addEventListener('pointerup', e => {
+    cam.dragging = false;
+    sceneCanvas.style.cursor = 'grab';
+    try { sceneCanvas.releasePointerCapture(e.pointerId); } catch(_){}
+  });
+  sceneCanvas.addEventListener('pointercancel', () => {
+    cam.dragging = false;
+    sceneCanvas.style.cursor = 'grab';
+  });
+  sceneCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    cam.dist = clamp(cam.dist * (1 + e.deltaY * 0.0008), 0.55, 2.0);
+    render();
+  }, { passive:false });
+
+  /* ================= 摇杆 ================= */
+  let joyDrag = false;
+  function applyJoystick(clientX, clientY){
+    const rect = joyBase.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const R  = rect.width / 2 - JOY_R_INSET;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const len = Math.hypot(dx, dy);
+    if (len > R) { dx = dx / len * R; dy = dy / len * R; }
+    joyHandle.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+    joyHandle.classList.add('active');
+    const mag = Math.min(Math.hypot(dx, dy) / R, 1);
+    if (mag < 0.08){
+      state.windSpeed = 0;
+    } else {
+      state.windSpeed = Math.round(mag * 10 * 2) / 2;
+      let ang = Math.atan2(-dy, dx) * 180 / Math.PI;
+      if (ang < 0) ang += 360;
+      state.windAngle = ang;
+    }
+    syncWindInput();
+    updateJoyReadout();
+    update();
+  }
+  joyBase.addEventListener('pointerdown', e => {
+    joyDrag = true;
+    joyBase.setPointerCapture(e.pointerId);
+    applyJoystick(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  joyBase.addEventListener('pointermove', e => {
+    if (joyDrag) applyJoystick(e.clientX, e.clientY);
+  });
+  joyBase.addEventListener('pointerup', e => {
+    joyDrag = false;
+    joyHandle.classList.remove('active');
+    try { joyBase.releasePointerCapture(e.pointerId); } catch(_){}
+  });
+  joyBase.addEventListener('pointercancel', () => {
+    joyDrag = false;
+    joyHandle.classList.remove('active');
+  });
+  joyBase.addEventListener('dblclick', () => {
+    resetJoystickVisual();
+    state.windSpeed = 0;
+    state.windAngle = 0;
+    syncWindInput();
+    updateJoyReadout();
+    update();
+  });
+
+  /* ================= 俯视图交互 ================= */
+  let topDragging = false;
+  function applyAimFromPoint(mx, my){
+    const v = view.top;
+    if (!v.ready) return;
+    const dx = mx - v.ox;
+    const dy = my - v.oy;
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+    let ang = Math.atan2(-dy, dx) * 180 / Math.PI;
+    if (ang > 180)  ang -= 360;
+    if (ang < -180) ang += 360;
+    state.aimAngle = clamp(ang, -AIM_LIMIT, AIM_LIMIT);
+    update();
+  }
+  topCanvas.addEventListener('pointerdown', e => {
+    const rect = topCanvas.getBoundingClientRect();
+    if (!view.top.ready) return;
+    topDragging = true;
+    topCanvas.setPointerCapture(e.pointerId);
+    topCanvas.style.cursor = 'grabbing';
+    applyAimFromPoint(e.clientX - rect.left, e.clientY - rect.top);
+    e.preventDefault();
+  });
+  topCanvas.addEventListener('pointermove', e => {
+    const rect = topCanvas.getBoundingClientRect();
+    if (topDragging){
+      applyAimFromPoint(e.clientX - rect.left, e.clientY - rect.top);
+    } else {
+      topCanvas.style.cursor = 'grab';
+    }
+  });
+  topCanvas.addEventListener('pointerup', e => {
+    if (topDragging){
+      topDragging = false;
+      topCanvas.style.cursor = 'grab';
+      try { topCanvas.releasePointerCapture(e.pointerId); } catch(_){}
+    }
+  });
+  topCanvas.addEventListener('pointercancel', () => {
+    topDragging = false;
+    topCanvas.style.cursor = 'grab';
+  });
+
+  /* ================= 侧视图交互 ================= */
+  let sideDrag = null;
+  function hitTestSide(mx, my){
+    const v = view.side;
+    if (!v.ready) return null;
+    const hx = v.x0;
+    const hy = v.groundY - state.h0 * v.s;
+    const rad = state.angle * Math.PI / 180;
+    const aLen = arrowLen(state.v0);
+    const tipX = hx + Math.cos(rad) * aLen;
+    const tipY = hy - Math.sin(rad) * aLen;
+    if (Math.hypot(mx - tipX, my - tipY) < 18) return 'vel';
+    if (Math.hypot(mx - hx, my - hy) < 16) return 'h0';
+    return null;
+  }
+  sideCanvas.addEventListener('pointerdown', e => {
+    const rect = sideCanvas.getBoundingClientRect();
+    const hit = hitTestSide(e.clientX - rect.left, e.clientY - rect.top);
+    if (!hit) return;
+    sideDrag = hit;
+    sideCanvas.setPointerCapture(e.pointerId);
+    sideCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  sideCanvas.addEventListener('pointermove', e => {
+    const rect = sideCanvas.getBoundingClientRect();
+    const v = view.side;
+    if (!v.ready) return;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    if (!sideDrag){
+      sideCanvas.style.cursor = hitTestSide(mx, my) ? 'grab' : 'default';
+      return;
+    }
+    if (sideDrag === 'h0'){
+      const newH = (v.groundY - my) / v.s;
+      controls.h0.set(newH);
+      update();
+    } else if (sideDrag === 'vel'){
+      const hx = v.x0;
+      const hy = v.groundY - state.h0 * v.s;
+      const len = Math.hypot(mx - hx, my - hy);
+      let newV = 0 + ((len - 22) / 60) * 20;
+      newV = clamp(newV, 0, 20);
+      let angDeg = Math.atan2(-(my - hy), mx - hx) * 180 / Math.PI;
+      if (angDeg < 0) angDeg = 0;
+      angDeg = clamp(angDeg, 0, 90);
+      controls.v0.set(newV);
+      controls.angle.set(angDeg);
+      update();
+    }
+  });
+  sideCanvas.addEventListener('pointerup', e => {
+    if (sideDrag){
+      sideDrag = null;
+      sideCanvas.style.cursor = 'default';
+      try { sideCanvas.releasePointerCapture(e.pointerId); } catch(_){}
+    }
+  });
+  sideCanvas.addEventListener('pointercancel', () => {
+    sideDrag = null;
+    sideCanvas.style.cursor = 'default';
+  });
+
+  /* ================= 自适应 ================= */
+  let rt = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => {
+      render();
+      if (state.windSpeed > 0.05) syncJoystickVisual();
+      if (vState.videoEl.src){
+        resizeAnalysisCanvas();
+        drawAnalysisOverlay();
+      }
+    }, 60);
+  });
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => render());
+    ro.observe(document.querySelector('.stage'));
+  }
+
+  /* ================= 启动 ================= */
+  sceneCanvas.style.cursor = 'grab';
+  setMode('demo');
+  updateJoyReadout();
+  syncWindInput();
+  renderAthleteList();
+  updateAthleteSelect();
+  updateTraceCount();
+  update();
+
+})();
+</script>
+</body>
+</html>
